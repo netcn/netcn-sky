@@ -1,0 +1,295 @@
+/* ============================================================
+   火烧云 sky.netcn.org
+   家族壳层（顶栏/页脚/tokens）不动，这里只做“天空观测”的正文皮肤：
+   暖色霞光 + 深靛夜空，明暗两套都保持纸感可读。
+   ============================================================ */
+
+:root {
+  --ui-ac-site: #d1432a;
+  --sky-2: #7c5cff;
+  --sky-good: #1d9e75;
+  --sky-mid: #ba7517;
+  --sky-bad: #a32d2d;
+  --sky-bar-good: #3aa88a;
+  --sky-bar-mid: #d5a13c;
+  --sky-bar-bad: #d98a7b;
+  --sky-hero:
+    radial-gradient(120% 100% at 82% -10%, rgba(209, 67, 42, .12), transparent 58%),
+    radial-gradient(90% 80% at 6% 0%, rgba(124, 92, 255, .09), transparent 55%);
+  --sky-card-shadow: 0 1px 2px rgba(20, 24, 33, .04), 0 10px 26px -18px rgba(20, 24, 33, .35);
+}
+
+html.dark {
+  --ui-ac-site: #ff7a55;
+  --sky-2: #9b8cff;
+  --sky-good: #5dcaa5;
+  --sky-mid: #ef9f27;
+  --sky-bad: #f09595;
+  --sky-bar-good: #4fbb9b;
+  --sky-bar-mid: #d9a13f;
+  --sky-bar-bad: #c46f60;
+  --sky-hero:
+    radial-gradient(120% 100% at 82% -10%, rgba(255, 122, 85, .16), transparent 58%),
+    radial-gradient(90% 80% at 6% 0%, rgba(124, 92, 255, .20), transparent 55%);
+  --sky-card-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 16px 34px -22px rgba(0, 0, 0, .8);
+}
+
+/* 顶栏：新站主色与蘑菇（其余槽位与四站完全一致） */
+[data-nc="sky"] {
+  --nc-ac: #d1432a;
+  --nc-ac2: #ffb08a;
+  --nc-soft: rgba(209, 67, 42, .10);
+  --nc-glow: rgba(209, 67, 42, .28);
+}
+html.dark [data-nc="sky"], [data-theme="dark"] [data-nc="sky"] {
+  --nc-ac: #ff7a55;
+  --nc-soft: rgba(255, 122, 85, .14);
+  --nc-glow: rgba(255, 122, 85, .30);
+}
+[data-nc="sky"] .nc-mk { background-image: url("../../shell/mk-sky.png"); }
+
+.sky-main { padding-top: 6px; }
+
+/* ---------- 首屏 ---------- */
+.sky-hero {
+  position: relative;
+  margin: 10px 0 18px;
+  padding: 22px 22px 20px;
+  border: 1px solid var(--ui-line);
+  border-radius: 20px;
+  background: var(--sky-hero), var(--ui-card);
+  overflow: hidden;
+}
+.sky-kicker {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--ui-ink3); font-weight: 600;
+}
+.sky-city {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--ui-line); background: var(--ui-card);
+  color: var(--ui-ink); font-family: inherit; font-size: 14px; font-weight: 800;
+  padding: 6px 12px; border-radius: 999px; cursor: pointer;
+}
+.sky-city:hover { border-color: var(--ui-ac); color: var(--ui-ac); }
+.sky-caret { font-size: 10px; color: var(--ui-ink3); }
+.sky-dot { color: var(--ui-ink3); }
+.sky-hero h1 {
+  margin: 14px 0 8px; font-size: clamp(26px, 4.2vw, 40px);
+  line-height: 1.18; letter-spacing: -.03em; color: var(--ui-ink); font-weight: 900;
+}
+.sky-verdict { margin: 0; max-width: 760px; color: var(--ui-ink2); font-size: 15px; line-height: 1.75; }
+.sky-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 12px; color: var(--ui-ink3); }
+.sky-events { margin: 10px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--ui-ink2); }
+.sky-events b { color: var(--ui-ink); }
+.sky-events .sep { margin: 0 8px; color: var(--ui-ink3); }
+.sky-link {
+  border: 0; background: transparent; color: var(--ui-ac); font-family: inherit;
+  font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 0;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.sky-link:hover { filter: brightness(1.1); }
+.sky-link:disabled { opacity: .5; cursor: default; text-decoration: none; }
+
+/* ---------- 四个评分卡 ---------- */
+.sky-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.sky-card {
+  position: relative; text-align: left; cursor: pointer; overflow: hidden;
+  border: 1px solid var(--ui-line); border-radius: 16px; padding: 15px 15px 13px;
+  background: var(--ui-card); color: var(--ui-ink); font-family: inherit;
+  box-shadow: var(--sky-card-shadow); transition: transform .16s, border-color .16s, box-shadow .16s;
+}
+.sky-card::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: var(--ui-ac); opacity: .9;
+}
+.sky-card:hover { transform: translateY(-2px); border-color: var(--ui-ac); }
+.sky-card.on { border-color: var(--ui-ac); box-shadow: 0 0 0 3px var(--ui-ac-soft), var(--sky-card-shadow); }
+.sky-card-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--ui-ink2); }
+.sky-card-value { margin: 8px 0 2px; font-size: 36px; font-weight: 900; letter-spacing: -.04em; line-height: 1; }
+.sky-card-value small { font-size: 14px; font-weight: 800; margin-left: 2px; color: var(--ui-ink3); }
+.sky-card-sub { font-size: 11.5px; line-height: 1.5; color: var(--ui-ink3); min-height: 34px; }
+.sky-card-meter { height: 5px; border-radius: 999px; background: var(--ui-line); overflow: hidden; margin-top: 8px; }
+.sky-card-meter i { display: block; height: 100%; border-radius: 999px; background: var(--ui-ac); }
+
+/* ---------- 面板 ---------- */
+.sky-panel {
+  border: 1px solid var(--ui-line); border-radius: 16px;
+  background: var(--ui-card); padding: 18px 18px 16px; margin-bottom: 16px;
+  box-shadow: var(--sky-card-shadow);
+}
+.sky-panel-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.sky-panel h2, .sky-note h2 { margin: 0; font-size: 16px; font-weight: 900; color: var(--ui-ink); letter-spacing: -.01em; }
+.sky-hint { font-size: 11.5px; color: var(--ui-ink3); }
+
+/* ---------- 时间轴 ---------- */
+.sky-bars {
+  position: relative;
+  display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px;
+  align-items: end; height: 132px; padding: 4px 0 0;
+  border-bottom: 1px solid var(--ui-line);
+}
+.sky-bars::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 50%;
+  border-top: 1px dashed var(--ui-line); pointer-events: none;
+}
+.sky-bar { position: relative; height: 100%; display: flex; align-items: flex-end; }
+.sky-bar i {
+  display: block; width: 100%; min-height: 3px; border-radius: 4px 4px 0 0;
+  background: var(--ui-ink3);
+}
+.sky-bar.sun i { background: var(--ui-ac); }
+.sky-bar.rain::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+  border-radius: 2px; background: var(--sky-2); opacity: .75;
+}
+.sky-bars-wrap { position: relative; }
+.sky-now { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--ui-ac); pointer-events: none; }
+.sky-now span { position: absolute; top: -3px; left: 3px; padding: 0 4px; border-radius: 4px; background: var(--ui-card); color: var(--ui-ac); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.sky-axis { position: relative; height: 58px; margin-top: 7px; }
+.sky-tick {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font-size: 11px; color: var(--ui-ink3); text-align: center; white-space: nowrap;
+}
+.sky-tick.alt { top: 23px; }
+.sky-tick b { display: block; font-size: 11.5px; color: var(--ui-ink2); font-weight: 700; }
+.sky-tick.first { transform: translateX(0); text-align: left; }
+.sky-tick.last { transform: translateX(-100%); text-align: right; }
+
+/* ---------- 因子解释 ---------- */
+.sky-seg { display: inline-flex; border: 1px solid var(--ui-line); border-radius: 999px; padding: 2px; gap: 2px; }
+.sky-seg button {
+  border: 0; background: transparent; color: var(--ui-ink2); font-family: inherit;
+  font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+}
+.sky-seg button.on { background: var(--ui-ac); color: #fff; }
+.sky-detail-head { margin: 0 0 8px; font-size: 13px; color: var(--ui-ink2); }
+.sky-detail-head b { font-size: 17px; color: var(--ui-ink); }
+.sky-factor { display: grid; grid-template-columns: 96px 1fr 74px; gap: 10px; align-items: center; padding: 6px 0; }
+.sky-factor-name { font-size: 12.5px; color: var(--ui-ink2); font-weight: 700; }
+.sky-factor-name em { font-style: normal; color: var(--ui-ink3); font-weight: 500; margin-left: 4px; font-size: 11px; }
+.sky-track { height: 7px; border-radius: 999px; background: var(--ui-line); overflow: hidden; }
+.sky-fill { display: block; height: 100%; border-radius: 999px; }
+.sky-factor-val { text-align: right; font-size: 12px; color: var(--ui-ink2); font-variant-numeric: tabular-nums; }
+.sky-explain { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--ui-surface); }
+.sky-explain li { margin: 4px 0; font-size: 12.5px; line-height: 1.65; color: var(--ui-ink2); }
+.sky-explain b { color: var(--ui-ink); }
+
+/* ---------- 模式表 ---------- */
+.sky-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.sky-table th, .sky-table td { padding: 8px 7px; border-bottom: 1px solid var(--ui-line); text-align: right; font-variant-numeric: tabular-nums; }
+.sky-table th { font-size: 11.5px; color: var(--ui-ink3); font-weight: 700; white-space: nowrap; }
+.sky-table th:first-child, .sky-table td:first-child { text-align: left; }
+.sky-table td:first-child { font-weight: 700; color: var(--ui-ink); }
+.sky-table tr:last-child td { border-bottom: 0; }
+.sky-org { display: block; font-size: 10.5px; color: var(--ui-ink3); font-weight: 500; }
+.sky-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.sky-pill.good { background: color-mix(in srgb, var(--sky-good) 14%, transparent); color: var(--sky-good); }
+.sky-pill.mid { background: color-mix(in srgb, var(--sky-mid) 16%, transparent); color: var(--sky-mid); }
+.sky-pill.bad { background: color-mix(in srgb, var(--sky-bad) 13%, transparent); color: var(--sky-bad); }
+.sky-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ---------- 集合成员分布 ---------- */
+.sky-ensemble { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--ui-line); }
+.sky-ens-head { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--ui-ink3); margin-bottom: 8px; flex-wrap: wrap; }
+.sky-ens-plot { position: relative; height: 88px; margin-top: 8px; border-bottom: 1px solid var(--ui-line); }
+.sky-ens-plot i { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--ui-ink3); opacity: .8; transform: translate(-50%, 50%); }
+.sky-ens-plot i.on { width: 6px; height: 6px; background: var(--ui-ac); opacity: 1; }
+.sky-ens-threshold { position: absolute; left: 0; right: 0; bottom: 60%; border-top: 1px dashed var(--ui-line); }
+.sky-ens-threshold span { position: absolute; right: 0; top: -8px; padding: 0 3px; background: var(--ui-card); color: var(--ui-ink3); font-size: 10px; }
+.sky-ens-note { margin: 8px 0 0; font-size: 11.5px; color: var(--ui-ink3); line-height: 1.6; }
+
+/* ---------- 未来三天 ---------- */
+.sky-days { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.sky-day { border: 1px solid var(--ui-line); border-radius: 12px; padding: 12px 13px; }
+.sky-day h3 { margin: 0 0 8px; font-size: 13px; font-weight: 800; color: var(--ui-ink); }
+.sky-day h3 span { display: block; font-size: 11px; color: var(--ui-ink3); font-weight: 500; margin-top: 2px; }
+.sky-day-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--ui-ink2); padding: 3px 0; }
+.sky-day-row b { font-variant-numeric: tabular-nums; color: var(--ui-ink); }
+
+/* ---------- 说明 ---------- */
+.sky-note { margin: 4px 0 10px; font-size: 12px; color: var(--ui-ink3); line-height: 1.75; }
+.sky-note h2 { font-size: 13px; margin-bottom: 6px; }
+.sky-note a { color: var(--ui-ac); text-decoration: underline; text-underline-offset: 2px; }
+
+/* ---------- 加载与错误 ---------- */
+.sky-skeleton { border-radius: 10px; background: linear-gradient(90deg, var(--ui-line), var(--ui-surface), var(--ui-line)); background-size: 200% 100%; animation: skyShine 1.2s linear infinite; }
+@keyframes skyShine { to { background-position: -200% 0; } }
+.sky-error { padding: 14px; border: 1px solid var(--sky-bad); border-radius: 12px; color: var(--sky-bad); font-size: 13px; }
+
+/* ---------- 顶栏城市联想 ---------- */
+#citySuggest {
+  position: absolute; left: 0; right: 0; top: calc(100% + 5px); z-index: 90;
+  padding: 5px; border: 1px solid var(--ui-line); border-radius: 10px;
+  background: var(--ui-card); box-shadow: 0 14px 30px -16px rgba(10, 14, 22, .5);
+  max-height: 300px; overflow: auto;
+}
+#citySuggest[hidden] { display: none; }
+#citySuggest div {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 10px; border-radius: 7px; font-size: 13px; color: var(--ui-ink2); cursor: pointer;
+}
+#citySuggest div:hover { background: var(--ui-ac-soft); color: var(--ui-ac); }
+.sug-prov { font-size: 11px; color: var(--ui-ink3); }
+
+/* ---------- 城市选择 ---------- */
+.sky-dialog {
+  width: min(620px, 92vw); max-height: 82vh; padding: 18px;
+  border: 1px solid var(--ui-line); border-radius: 18px;
+  background: var(--ui-card); color: var(--ui-ink);
+}
+.sky-dialog::backdrop { background: rgba(8, 12, 20, .5); }
+.sky-dialog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sky-dialog h2 { margin: 0; font-size: 16px; font-weight: 900; }
+.sky-dialog-close { border: 0; background: transparent; color: var(--ui-ink3); font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+.sky-dialog-close:hover { background: var(--ui-surface); color: var(--ui-ink); }
+.sky-dialog input {
+  width: 100%; height: 38px; padding: 0 12px; border-radius: 10px;
+  border: 1px solid var(--ui-line); background: var(--ui-card); color: var(--ui-ink);
+  font-family: inherit; font-size: 14px; margin-bottom: 12px;
+}
+.sky-dialog input:focus { outline: 0; border-color: var(--ui-ac); box-shadow: 0 0 0 3px var(--ui-ac-soft); }
+.sky-city-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 52vh; overflow: auto; padding-right: 2px; }
+.sky-city-item {
+  border: 1px solid var(--ui-line); border-radius: 9px; background: var(--ui-card);
+  color: var(--ui-ink2); font-family: inherit; font-size: 12.5px; font-weight: 600;
+  padding: 8px 6px; cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sky-city-item:hover { border-color: var(--ui-ac); color: var(--ui-ac); }
+.sky-city-item.on { border-color: var(--ui-ac); color: var(--ui-ac); background: var(--ui-ac-soft); font-weight: 800; }
+.sky-city-item small { display: block; font-size: 10px; color: var(--ui-ink3); font-weight: 500; }
+.sky-dialog-note { margin: 10px 0 0; font-size: 11.5px; color: var(--ui-ink3); line-height: 1.6; }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 980px) {
+  .sky-cards { grid-template-columns: repeat(2, 1fr); }
+  .sky-days { grid-template-columns: 1fr; }
+  .sky-city-list { grid-template-columns: repeat(3, 1fr); }
+}
+/* 5 个站名在 390px 下比四站多一格，收紧胶囊间距，保证与家族同为两行顶栏 */
+@media (max-width: 430px) {
+  [data-nc="sky"] .nc-sw { gap: 2px; }
+  [data-nc="sky"] .nc-sw a { padding: 0 5px; font-size: 11px; }
+}
+
+@media (max-width: 640px) {
+  .sky-hero { padding: 18px 15px 16px; border-radius: 16px; }
+  .sky-hero h1 { font-size: 27px; }
+  .sky-verdict { font-size: 13.5px; }
+  .sky-cards { gap: 9px; }
+  .sky-card { padding: 13px 12px 11px; border-radius: 14px; }
+  .sky-card-value { font-size: 30px; }
+  .sky-card-sub { min-height: 32px; }
+  .sky-panel { padding: 15px 13px 13px; border-radius: 14px; }
+  .sky-bars { gap: 2px; height: 112px; }
+  .sky-factor { grid-template-columns: 76px 1fr 58px; gap: 8px; }
+  .sky-factor-name em { display: none; }
+  .sky-city-list { grid-template-columns: repeat(2, 1fr); }
+  .sky-table { font-size: 11.5px; }
+  .sky-table th, .sky-table td { padding: 7px 5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sky-card, .sky-skeleton { transition: none; animation: none; }
+}

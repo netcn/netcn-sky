@@ -1,0 +1,108 @@
+/* netcn 家族壳层 · 皮肤 A（纸感发丝）
+   四站共用同一套顶栏与页脚：简洁导航 netcn.org / 科学问答 ask / 头脑体操 quiz / 玩游戏 game
+   槽位顺序固定：品牌 → 四站胶囊 → 搜索 → 工具（语言 / 儿童 / 主题，按各站实际能力出现）
+   页面主体仍用各站自己的 CSS。 */
+
+.nc-shell,.nc-inner,.nc-foot{
+  --nc-ink:#141821; --nc-ink2:#5c6577; --nc-ink3:#98a1b0;
+  --nc-line:#e3e6ea; --nc-card:#fff; --nc-field:#fff;
+  --nc-soft:rgba(37,99,235,.09); --nc-glow:rgba(37,99,235,.30);
+  --nc-ac:#2563eb; --nc-ac2:#7aa2ff;
+  --nc-gap:8px; --nc-h:36px;
+}
+/* 深色态：显式标 data-nc-tone="dark"，或跟随页面根元素的 data-theme="dark" / class="dark" */
+[data-nc-tone="dark"],
+[data-theme="dark"] .nc-shell,[data-theme="dark"] .nc-inner,[data-theme="dark"] .nc-foot,
+.dark .nc-shell,.dark .nc-inner,.dark .nc-foot{
+  --nc-ink:#e6eaf2; --nc-ink2:#9aa5b7; --nc-ink3:#6a7488;
+  --nc-line:#2f3846; --nc-card:#171b22; --nc-field:rgba(255,255,255,.05);
+}
+/* 每站一支主色，深浅各一值，与各站正文 accent 取同一支 */
+[data-nc="nav"]{--nc-ac:#2563eb;--nc-ac2:#7aa2ff;--nc-soft:rgba(37,99,235,.09);--nc-glow:rgba(37,99,235,.30)}
+[data-nc="ask"]{--nc-ac:#0f9d8c;--nc-ac2:#5ee6c8;--nc-soft:rgba(15,157,140,.10);--nc-glow:rgba(15,157,140,.28)}
+[data-nc="quiz"]{--nc-ac:#c2410c;--nc-ac2:#ffb56b;--nc-soft:rgba(194,65,12,.09);--nc-glow:rgba(194,65,12,.26)}
+[data-nc="game"]{--nc-ac:#7c5cff;--nc-ac2:#00f0ff;--nc-soft:rgba(124,92,255,.14);--nc-glow:rgba(124,92,255,.30)}
+[data-theme="dark"] [data-nc="nav"],.dark [data-nc="nav"],[data-nc-tone="dark"][data-nc="nav"]{--nc-ac:#60a5fa;--nc-soft:rgba(96,165,250,.14);--nc-glow:rgba(96,165,250,.30)}
+[data-theme="dark"] [data-nc="ask"],.dark [data-nc="ask"],[data-nc-tone="dark"][data-nc="ask"]{--nc-ac:#1fd6b6;--nc-soft:rgba(31,214,182,.14);--nc-glow:rgba(31,214,182,.30)}
+[data-theme="dark"] [data-nc="quiz"],.dark [data-nc="quiz"],[data-nc-tone="dark"][data-nc="quiz"]{--nc-ac:#fb923c;--nc-soft:rgba(251,146,60,.14);--nc-glow:rgba(251,146,60,.30)}
+
+/* ---------- 顶栏 ---------- */
+.nc-shell{display:flex;align-items:center;flex-wrap:wrap;gap:var(--nc-gap);
+  position:sticky;top:0;z-index:100;padding:5px var(--ui-pad,0);
+  background:var(--nc-card);border-bottom:1px solid var(--nc-line)}
+.nc-inner{display:flex;align-items:center;flex-wrap:wrap;gap:var(--nc-gap)}
+
+.nc-brand{display:flex;align-items:center;gap:6px;flex:0 0 auto;min-height:var(--nc-h);
+  font-size:14px;font-weight:800;letter-spacing:-.01em;color:var(--nc-ink);text-decoration:none;white-space:nowrap}
+/* 品牌标记：四站各一只蘑菇；mk-*.png 随本 CSS 一起分发到各站 shell/ */
+.nc-mk{width:28px;height:28px;flex:0 0 auto;display:grid;place-items:center;
+  font-size:0;color:transparent;overflow:hidden;background-image:url("mk-nav.png");
+  background-repeat:no-repeat;background-position:center;background-size:contain}
+[data-nc="nav"] .nc-mk{background-image:url("mk-nav.png")}
+[data-nc="ask"] .nc-mk{background-image:url("mk-ask.png")}
+[data-nc="quiz"] .nc-mk{background-image:url("mk-quiz.png")}
+[data-nc="game"] .nc-mk,[data-nc="game"] .brand-ic{background-image:url("mk-game.png")}
+[data-nc="game"] .brand-ic{background-repeat:no-repeat;background-position:center;
+  background-size:contain}
+[data-nc="game"] .brand-ic>*{display:none}
+.nc-brand-en{font-size:11px;font-weight:700;color:var(--nc-ac);letter-spacing:.04em;margin-left:2px}
+/* 品牌名最小 4 字宽：3 字的「游戏厅」与 4 字站名占同样宽度，
+   四站顶栏后续槽位（胶囊/搜索/工具）的 x 坐标完全一致 */
+.nc-brand-txt{white-space:nowrap;min-width:4em}
+
+.nc-sw{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.nc-sw a{display:inline-flex;align-items:center;font-size:12.5px;font-weight:700;white-space:nowrap;
+  min-height:var(--nc-h);padding:0 10px;border-radius:8px;text-decoration:none;
+  color:var(--nc-ink2);border:1px solid var(--nc-line);background:transparent;
+  transition:color .16s,border-color .16s,background .16s}
+.nc-sw a:hover{color:var(--nc-ac);border-color:var(--nc-ac);background:var(--nc-soft)}
+/* 当前站：无底色，仅主色文字 + 细下划线，视觉重量与普通胶囊一致 */
+.nc-sw a[aria-current="page"]{color:var(--nc-ac);background:transparent;
+  border-color:var(--nc-line);font-weight:800;
+  text-decoration:underline;text-decoration-color:var(--nc-ac);
+  text-decoration-thickness:2px;text-underline-offset:4px}
+
+/* 搜索槽：各站的输入框放进这里，外观由壳层统一 */
+.nc-search{flex:1 1 150px;min-width:110px;position:relative;display:flex;align-items:center}
+.nc-search input{width:100%;height:var(--nc-h);padding:0 10px;border-radius:8px;
+  border:1px solid var(--nc-line);background:var(--nc-field);color:var(--nc-ink);
+  font-family:inherit;font-size:13px}
+.nc-search input::placeholder{color:var(--nc-ink3)}
+.nc-search input:focus{outline:0;border-color:var(--nc-ac);box-shadow:0 0 0 3px var(--nc-soft)}
+.nc-search .search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);
+  font-size:14px;line-height:1;color:var(--nc-ink3);pointer-events:none}
+.nc-search.has-icon input{padding-left:26px}
+.nc-shell .search-box,.nc-inner .search-wrap{flex:1 1 150px;min-width:110px}
+
+/* 工具槽 */
+.nc-tools{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+.nc-tools button,.nc-tools a{display:inline-flex;align-items:center;justify-content:center;
+  height:var(--nc-h);min-width:var(--nc-h);padding:0 9px;border-radius:8px;
+  border:1px solid var(--nc-line);background:transparent;color:var(--nc-ink2);
+  font-family:inherit;font-size:12px;font-weight:700;text-decoration:none;transition:.16s}
+.nc-tools button:hover,.nc-tools a:hover{color:var(--nc-ac);border-color:var(--nc-ac);background:var(--nc-soft)}
+.nc-tools .theme-toggle,.nc-tools [id="theme"]{border-radius:999px;padding:0;width:var(--nc-h)}
+
+/* ---------- 页脚 ---------- */
+.nc-foot{display:flex;align-items:center;flex-wrap:wrap;gap:7px 12px;
+  margin-top:18px;padding:12px 0;border-top:1px solid var(--nc-line);
+  font-size:12px;color:var(--nc-ink3)}
+.nc-foot-nav{display:flex;gap:4px;flex-wrap:wrap}
+.nc-foot-nav a{display:inline-flex;align-items:center;min-height:28px;padding:0 9px;border-radius:7px;
+  color:var(--nc-ink2);border:1px solid transparent;text-decoration:none;transition:.16s}
+.nc-foot-nav a:hover{color:var(--nc-ac);border-color:var(--nc-ac);background:var(--nc-soft)}
+.nc-foot-nav a[aria-current="page"]{color:var(--nc-ac);border-color:transparent;background:transparent;font-weight:700;
+  text-decoration:underline;text-decoration-color:var(--nc-ac);text-underline-offset:3px}
+.nc-foot-note{white-space:nowrap}
+.nc-foot-site{margin-left:auto;text-align:right}
+.nc-foot-site a{color:var(--nc-ink2);text-decoration:underline;text-underline-offset:2px}
+.nc-foot-site a:hover{color:var(--nc-ac)}
+
+/* ---------- 窄屏与触屏 ---------- */
+@media (max-width:760px){
+  .nc-shell,.nc-inner,.nc-foot{--nc-h:34px}
+  .nc-sw a{padding:0 7px;font-size:11.5px}
+  .nc-foot-site{margin-left:0;text-align:left;flex:1 1 100%}
+}
+@media (pointer:coarse){.nc-shell,.nc-inner{--nc-h:44px}.nc-mk{width:32px;height:32px}}
+@media (prefers-reduced-motion:reduce){.nc-shell *,.nc-inner *,.nc-foot *{transition:none!important}}

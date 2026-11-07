@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://sky.netcn.org/sitemap.xml

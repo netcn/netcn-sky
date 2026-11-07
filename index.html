@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>火烧云 · 今晚晚霞、朝霞、星空、月亮观测指南</title>
+<meta name="description" content="今晚有火烧云吗？朝霞几点？星空能不能看到？汇总 ECMWF、中国气象局、ICON、GFS、JMA、UKMO 六个数值模式与 50 个集合成员，给出晚霞、朝霞、星空、月亮的观测概率与最佳时间窗口。">
+<meta property="og:title" content="火烧云 · 今晚值不值得出门看天">
+<meta property="og:description" content="六个数值模式 + 50 个集合成员汇总，给出晚霞、朝霞、星空、月亮的观测概率。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://sky.netcn.org/assets/icon-192.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://sky.netcn.org/assets/icon-192.png">
+<link rel="canonical" href="https://sky.netcn.org/">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#d1432a">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"火烧云","alternateName":"Sky","url":"https://sky.netcn.org/","description":"汇总六个数值模式与集合预报，给出今晚晚霞、朝霞、星空、月亮的观测概率。","inLanguage":"zh-CN"}
+</script>
+<link rel="stylesheet" href="assets/css/sky.css?v=4">
+<link rel="stylesheet" href="/shell/netcn-shell.css?v=20261107c5">
+<link rel="stylesheet" href="/shell/netcn-ui.css?v=20261107c5">
+<script src="/shell/shell.js?v=20261107c5"></script>
+<link rel="modulepreload" href="assets/js/app.js?v=4">
+<link rel="modulepreload" href="assets/js/astro.js?v=4">
+<link rel="modulepreload" href="assets/js/sources.js?v=4">
+<link rel="modulepreload" href="assets/js/scoring.js?v=4">
+<link rel="modulepreload" href="assets/js/cities.js?v=4">
+</head>
+<body>
+<nav class="nc-shell" aria-label="netcn 站点导航">
+  <a class="nc-brand" href="./" aria-label="返回首页"><span class="nc-mk" aria-hidden="true"></span><span class="nc-brand-txt">火烧云</span></a>
+  <nav class="nc-sw" aria-label="netcn 站点">
+    <a href="https://netcn.org/" data-nc-to="nav">导航</a>
+    <a href="https://ask.netcn.org/" data-nc-to="ask">科学问答</a>
+    <a href="https://quiz.netcn.org/" data-nc-to="quiz">头脑体操</a>
+    <a href="https://game.netcn.org/" data-nc-to="game">玩游戏</a>
+    <a href="https://sky.netcn.org/" data-nc-to="sky">火烧云</a>
+  </nav>
+  <div class="nc-search has-icon">
+    <span class="search-icon" aria-hidden="true">⌕</span>
+    <input id="citySearch" type="search" placeholder="搜城市，如 上海 / 敦煌" autocomplete="off" aria-label="搜索城市">
+    <div id="citySuggest" class="suggest" hidden></div>
+  </div>
+  <div class="nc-tools">
+    <button class="nc-tool" id="ncTheme" type="button" aria-label="切换明暗">☾</button>
+    <button class="nc-tool" id="ncLang" type="button" aria-label="切换语言">EN</button>
+  </div>
+</nav>
+
+<main class="sky-main">
+  <noscript>
+    <section class="sky-panel">
+      <h2>火烧云 · 今晚值不值得出门看天</h2>
+      <p>这个页面需要 JavaScript 才能读取实时天气与天文数据。它汇总 ECMWF、中国气象局、ICON、GFS、JMA、UKMO 六个数值模式、ECMWF 50 个集合成员与空气质量数据，给出今晚晚霞、朝霞、星空、月亮的观测概率、最佳时间窗口和原因解释。</p>
+      <p>数据来源：Open-Meteo、挪威气象局 met.no。预报存在误差，概率仅供参考。</p>
+    </section>
+  </noscript>
+  <section class="sky-hero">
+    <div class="sky-kicker">
+      <button class="sky-city" id="cityBtn" type="button"><span id="cityName">上海</span><span class="sky-caret" aria-hidden="true">▾</span></button>
+      <span class="sky-dot">·</span>
+      <span id="dateLabel">—</span>
+    </div>
+    <h1 id="verdictTitle">正在读取今晚的天空…</h1>
+    <p class="sky-verdict" id="verdictText">正在汇总六个数值模式与集合预报。</p>
+    <div class="sky-meta">
+      <span id="updateTime">—</span>
+      <button class="sky-link" id="refreshBtn" type="button">刷新</button>
+      <button class="sky-link" id="geoBtn" type="button">用我的位置</button>
+    </div>
+    <p class="sky-events" id="skyEvents"></p>
+  </section>
+
+  <section class="sky-cards" id="cards" aria-live="polite" aria-label="今晚观测评分"></section>
+
+  <section class="sky-panel" aria-labelledby="tlTitle">
+    <div class="sky-panel-head">
+      <h2 id="tlTitle">今晚时间轴</h2>
+      <span class="sky-hint" id="tlHint">柱子是云量，越低越通透</span>
+    </div>
+    <div id="timeline" class="sky-timeline"></div>
+  </section>
+
+  <section class="sky-panel" aria-labelledby="dTitle">
+    <div class="sky-panel-head">
+      <h2 id="dTitle">为什么是这个结果</h2>
+      <div class="sky-seg" id="detailTabs" role="tablist"></div>
+    </div>
+    <div id="detailBody" class="sky-detail"></div>
+  </section>
+
+  <section class="sky-panel" aria-labelledby="mTitle">
+    <div class="sky-panel-head">
+      <h2 id="mTitle">六个模式怎么看</h2>
+      <span class="sky-hint" id="mHint">分歧越大，置信度越低</span>
+    </div>
+    <div id="modelTable" class="sky-models"></div>
+    <div id="ensembleBox" class="sky-ensemble"></div>
+  </section>
+
+  <section class="sky-panel" aria-labelledby="daysTitle">
+    <div class="sky-panel-head"><h2 id="daysTitle">未来三天</h2><span class="sky-hint">仅供行程参考</span></div>
+    <div id="days" class="sky-days"></div>
+  </section>
+
+  <section class="sky-note" aria-labelledby="noteTitle">
+    <h2 id="noteTitle">数据与边界</h2>
+    <p id="sourceNote">—</p>
+  </section>
+</main>
+
+<footer class="nc-foot">
+  <nav class="nc-foot-nav" aria-label="netcn 站点">
+    <a href="https://netcn.org/" data-nc-to="nav">导航</a>
+    <a href="https://ask.netcn.org/" data-nc-to="ask">科学问答</a>
+    <a href="https://quiz.netcn.org/" data-nc-to="quiz">头脑体操</a>
+    <a href="https://game.netcn.org/" data-nc-to="game">玩游戏</a>
+    <a href="https://sky.netcn.org/" data-nc-to="sky">火烧云</a>
+  </nav>
+  <span class="nc-foot-note">© 2011–2026 netcn.org</span>
+  <span class="nc-foot-site">晚霞 · 朝霞 · 星空 · 月亮 · 流星雨　数据仅供参考</span>
+</footer>
+
+<dialog id="cityDialog" class="sky-dialog" aria-labelledby="cityDialogTitle">
+  <div class="sky-dialog-head">
+    <h2 id="cityDialogTitle">选择城市</h2>
+    <button class="sky-dialog-close" id="cityClose" type="button" aria-label="关闭">✕</button>
+  </div>
+  <input id="cityFilter" type="search" placeholder="输入城市名，如 上海、敦煌" autocomplete="off">
+  <div class="sky-city-list" id="cityList"></div>
+  <p class="sky-dialog-note">光污染为城市级估算；郊区、山区实际条件通常更好。</p>
+</dialog>
+
+<script type="module" src="assets/js/app.js?v=4"></script>
+</body>
+</html>

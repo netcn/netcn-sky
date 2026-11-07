@@ -1,0 +1,299 @@
+/* ============================================================
+   netcn 全站共用视觉语言 · 纸感（Paper）
+   四站共用：同一套字体、底色、文字层级、圆角、边框、阴影、卡片、
+   按钮、输入、胶囊与分区标题；每站只保留自己的主色（--ui-ac-site）。
+   只统一「视觉语言」，不改布局、内容顺序与任何交互。
+   引入顺序：必须在各站自己的 CSS 之后，才能覆盖装饰性样式。
+   ============================================================ */
+
+:root{
+  --ui-font: system-ui,-apple-system,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;
+  --ui-bg:#fafbfc;
+  --ui-card:#ffffff;
+  --ui-surface:#f4f6f8;
+  --ui-line:#e5e8ee;
+  --ui-line-soft:#eef0f4;
+  --ui-ink:#141821;
+  --ui-ink2:#5c6577;
+  --ui-ink3:#98a1b0;
+  --ui-r:10px;
+  --ui-r-card:12px;
+  --ui-r-lg:14px;
+  --ui-r-pill:999px;
+  --ui-shadow:0 1px 2px rgba(16,24,40,.04);
+  --ui-shadow-up:0 6px 18px rgba(16,24,40,.09);
+  --ui-ac:var(--ui-ac-site,#2563eb);
+  --ui-ac-soft:rgba(37,99,235,.07);
+  --ui-ac-soft:color-mix(in srgb,var(--ui-ac) 8%,transparent);
+  /* 统一栅格：顶栏 / 主体 / 页脚共用同一内容宽度与呼吸边距 */
+  --ui-w:1200px;
+  --ui-gutter:clamp(14px,3vw,28px);
+  --ui-pad:max(var(--ui-gutter),calc((100% - var(--ui-w))/2));
+}
+
+/* 深色态：四站共用同一套深色纸感，主色仍按站点区分 */
+[data-theme="dark"],html.dark,.dark{
+  --ui-bg:#10141c; --ui-card:#171c25; --ui-surface:#1d2330;
+  --ui-line:#29313d; --ui-line-soft:#222936;
+  --ui-ink:#e6eaf2; --ui-ink2:#9aa5b7; --ui-ink3:#6a7488;
+  --ui-shadow:0 1px 2px rgba(0,0,0,.22);
+  --ui-shadow-up:0 8px 22px rgba(0,0,0,.34);
+}
+
+html{font-family:var(--ui-font);-webkit-font-smoothing:antialiased}
+/* 四站统一预留滚动条槽：页面长短不同、切站时都不左右跳动 */
+html{scrollbar-gutter:stable!important}
+body{
+  font-family:var(--ui-font)!important;
+  background:var(--ui-bg)!important;
+  color:var(--ui-ink)!important;
+  margin:0!important;
+}
+/* 去掉各站原有的极光 / 霓虹光晕 / 玻璃模糊，统一为纯色纸感底 */
+body::before,body::after{
+  background:none!important;opacity:0!important;animation:none!important;filter:none!important;
+}
+a{color:var(--ui-ac)}
+button,input,select,textarea{font-family:inherit}
+
+/* ---------- 统一栅格：四站顶栏与主体左右边缘完全对齐 ----------
+   --ui-w 是内容区最大宽度；顶栏用 padding 居中、主体用 max-width+padding
+   居中，两者内容区恒等于 min(100% - 2*gutter, --ui-w)，窄屏自适应。 */
+.nc-shell{padding-left:var(--ui-pad)!important;padding-right:var(--ui-pad)!important}
+/* 四站页脚统一为 body 直接子级：全宽细线 + 内容对齐顶栏品牌 */
+body > .nc-foot{
+  padding-left:var(--ui-pad)!important;padding-right:var(--ui-pad)!important;
+  align-items:center;box-sizing:border-box!important;
+  height:53px;overflow:hidden;
+}
+/* 版权/说明文字不换行，避免因各站文案长短造成页脚高度差 */
+.nc-foot-note,.nc-foot-site{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.container,main,.wrap{
+  width:auto!important;box-sizing:border-box!important;
+  max-width:calc(var(--ui-w) + var(--ui-gutter) + var(--ui-gutter))!important;
+  margin-left:auto!important;margin-right:auto!important;
+  padding-left:var(--ui-gutter)!important;padding-right:var(--ui-gutter)!important;
+}
+/* ask 内部原本各自限宽的区块，统一跟随主容器 */
+.launch,.carnival,.kids-launch{
+  max-width:none!important;margin-left:0!important;margin-right:0!important;
+  padding-left:0!important;padding-right:0!important;
+}
+/* 长串文本（统计条 / 著录名）一律可折行，任何页面都不横向溢出 */
+.scats .n,.n,.trust-card,.toc{overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:640px){
+  .nc-shell{gap:6px}
+  .nc-sw{gap:3px}
+  .nc-search{min-width:96px}
+}
+
+/* ---------- 家族壳层：顶栏 / 页脚统一为浅色纸感 ---------- */
+.nc-shell,.nc-foot{
+  background:var(--ui-card)!important;
+  border-color:var(--ui-line)!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  color:var(--ui-ink2)!important;
+}
+[data-theme="dark"] .nc-shell,[data-theme="dark"] .nc-foot,
+html.dark .nc-shell,html.dark .nc-foot{background:var(--ui-card)!important}
+.nc-shell .nc-brand,.nc-shell .nc-brand-en{color:var(--ui-ink)!important}
+.nc-sw a,.nc-foot-nav a{color:var(--ui-ink2)!important;border-radius:var(--ui-r-pill)}
+.nc-sw a[data-nc-to]:hover{background:var(--ui-ac-soft);color:var(--ui-ac)!important}
+.nc-search input,.nc-search{
+  background:var(--ui-surface)!important;color:var(--ui-ink)!important;
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-pill)!important;
+}
+.nc-tools button,.nc-tools .lang-btn,.nc-tools a{
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-pill)!important;
+  background:var(--ui-card)!important;color:var(--ui-ink2)!important;
+}
+/* 当前站：彻底无底色，只留主色文字 + 2px 下划线（压过壳层皮肤） */
+.nc-sw a[aria-current="page"],.nc-foot-nav a[aria-current="page"]{
+  color:var(--ui-ac)!important;background:transparent!important;
+  border:1px solid var(--ui-line)!important;box-shadow:none!important;font-weight:800!important;
+  text-decoration:underline!important;text-decoration-color:var(--ui-ac)!important;
+  text-decoration-thickness:2px!important;text-underline-offset:4px!important;
+}
+/* 四站统一的工具按钮：同尺寸、同圆角、同 hover、同一切换方式 */
+.nc-tools{gap:6px}
+.nc-tools .nc-tool{
+  display:inline-flex;align-items:center;justify-content:center;
+  height:32px;min-width:32px;padding:0 11px;
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-pill)!important;
+  background:var(--ui-card)!important;color:var(--ui-ink2)!important;
+  font-family:inherit;font-size:12px;font-weight:700;line-height:1;cursor:pointer;
+  text-decoration:none;transition:color .16s,border-color .16s,background .16s;
+}
+.nc-tools .nc-tool:hover{
+  color:var(--ui-ac)!important;border-color:var(--ui-ac)!important;background:var(--ui-ac-soft)!important;
+}
+.nc-tools .nc-tool:focus-visible{outline:2px solid var(--ui-ac);outline-offset:2px}
+.nc-tools .nc-tool#ncTheme{width:32px;padding:0;font-size:15px}
+.nc-tools .nc-tool#ncLang{min-width:42px}
+
+/* ---------- 通用卡片 / 按钮 / 输入 / 胶囊 ---------- */
+.btn,button.btn,.nc-btn{
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-sm,8px)!important;
+  background:var(--ui-card)!important;color:var(--ui-ink2)!important;
+  box-shadow:none!important;font-weight:600;
+}
+.btn:hover,button.btn:hover{border-color:var(--ui-ac)!important;color:var(--ui-ac)!important}
+input[type="search"],input[type="text"],.search-input{
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r)!important;
+  background:var(--ui-card)!important;color:var(--ui-ink)!important;
+}
+
+/* ============================================================
+   主站 home · 本身就是纸感基准，只对齐 token
+   ============================================================ */
+[data-ui-site="nav"] body,.home body{background:var(--ui-bg)!important}
+
+/* ============================================================
+   问答 ask · 去掉渐变 hero / 极光 / 玻璃拟态，改白底细线卡片
+   ============================================================ */
+.ask-page body,.qpage body,.hero~* body{background:var(--ui-bg)!important}
+.hero{
+  background:var(--ui-card)!important;
+  border:1px solid var(--ui-line)!important;
+  border-radius:var(--ui-r-card)!important;
+  box-shadow:var(--ui-shadow)!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+.hero::after,.hero-fx{display:none!important}
+.hero h1 .grad{
+  background:none!important;color:var(--ui-ac)!important;
+  -webkit-text-fill-color:var(--ui-ac)!important;
+}
+.hero p,.hero .stat span{color:var(--ui-ink2)!important}
+.hero .stat b{color:var(--ui-ac)!important}
+.cta{
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-pill)!important;
+  background:var(--ui-card)!important;color:var(--ui-ink2)!important;
+  box-shadow:none!important;
+}
+.cta-primary,.cta.cta-primary{
+  background:var(--ui-ac)!important;color:#fff!important;border-color:var(--ui-ac)!important;
+}
+.cat,.explore-grid a,.explore-grid li a,.q-card,.detail,.srcdet,.trust-card,.path-card,
+.topic-hero,.toc,.qa,.cat-hero,.qhead{
+  background:var(--ui-card)!important;
+  background-image:none!important;
+  border:1px solid var(--ui-line)!important;
+  border-radius:var(--ui-r-card)!important;
+  box-shadow:var(--ui-shadow)!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  color:var(--ui-ink)!important;
+}
+.topic-hero h1,.toc h2,.qa h1,.cat-hero h1{color:var(--ui-ink)!important}
+.topic-hero h1 .en,.topic-hero .zh,.topic-hero .cnt,.cat-hero h1 .en{color:var(--ui-ink2)!important}
+.cat:hover,.explore-grid a:hover{border-color:var(--ui-ac)!important;box-shadow:var(--ui-shadow-up)!important}
+.cat::after,.cat:hover::after{display:none!important}
+.cat b,.explore-grid .t{color:var(--ui-ink)!important}
+.cat span,.explore-grid .e,.explore-sec h2 .en{color:var(--ui-ink3)!important}
+.explore-sec h2,.explore h2,.cats-title{color:var(--ui-ink)!important}
+.badge{
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-pill)!important;
+  background:var(--ui-surface)!important;color:var(--ui-ink2)!important;
+}
+.badge.ok,.badge.verified{border-color:var(--ui-ac)!important;color:var(--ui-ac)!important;background:var(--ui-ac-soft)!important}
+
+/* ============================================================
+   头脑体操 quiz · 单题卡 / tabs / 按钮对齐
+   ============================================================ */
+.quiz-container{max-width:760px}
+.quiz-tabs{
+  gap:6px;background:var(--ui-card)!important;
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r)!important;
+  padding:6px;box-shadow:var(--ui-shadow)!important;
+}
+.quiz-tab{
+  border:1px solid transparent!important;border-radius:var(--ui-r-pill)!important;
+  background:transparent!important;color:var(--ui-ink2)!important;
+  font-size:13px;font-weight:600;
+}
+.quiz-tab:hover{color:var(--ui-ac)!important;border-color:var(--ui-line)!important}
+.quiz-tab.active{
+  background:var(--ui-ac)!important;color:#fff!important;border-color:var(--ui-ac)!important;
+}
+.quiz-card{
+  background:var(--ui-card)!important;border:1px solid var(--ui-line)!important;
+  border-radius:var(--ui-r-card)!important;box-shadow:var(--ui-shadow)!important;
+}
+.quiz-question{color:var(--ui-ink)!important;font-weight:700}
+.quiz-category-tag{
+  background:var(--ui-ac-soft)!important;color:var(--ui-ac)!important;
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-pill)!important;
+}
+.quiz-answer{
+  background:var(--ui-ac-soft)!important;color:var(--ui-ac)!important;
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r)!important;
+}
+/* 主按钮：选择器要压过上面的 button.btn（0,1,1） */
+button.btn-answer,.btn.btn-answer{
+  background:var(--ui-ac)!important;color:#fff!important;border-color:var(--ui-ac)!important;
+  box-shadow:none!important;
+}
+button.btn-answer:hover,.btn.btn-answer:hover{background:var(--ui-ac)!important;color:#fff!important}
+button.btn-answer.hide-answer,.btn.btn-answer.hide-answer{background:#dc2626!important;border-color:#dc2626!important}
+.quiz-controls{
+  background:var(--ui-card)!important;border:1px solid var(--ui-line)!important;
+  border-radius:var(--ui-r)!important;box-shadow:var(--ui-shadow)!important;
+}
+.quiz-stats,.quiz-stats span{color:var(--ui-ink2)!important}
+
+/* ============================================================
+   游戏 game · 首页深色霓虹改白底纸感卡片，紫色仍是本站主色
+   53 个游戏页的画布不在此文件作用域内，保持原样
+   ============================================================ */
+.wrap{color:var(--ui-ink)!important}
+.chip{
+  border:1px solid var(--ui-line)!important;background:var(--ui-card)!important;
+  color:var(--ui-ink2)!important;border-radius:var(--ui-r-pill)!important;
+}
+.chip:hover{border-color:var(--ui-ac)!important;color:var(--ui-ac)!important}
+.chip.on{
+  background:var(--ui-ac)!important;color:#fff!important;border-color:var(--ui-ac)!important;
+  box-shadow:none!important;
+}
+.grp h2{color:var(--ui-ink)!important}
+.grp h2::before{background:var(--ui-ac)!important;border-radius:3px}
+.grp h2 .num{color:var(--ui-ink3)!important}
+.gc{
+  background:var(--ui-card)!important;border:1px solid var(--ui-line)!important;
+  border-radius:var(--ui-r-card)!important;box-shadow:var(--ui-shadow)!important;
+  color:var(--ui-ink)!important;
+}
+.gc::after{display:none!important}
+.gc:hover,.gc:focus-visible{
+  border-color:var(--ui-ac)!important;box-shadow:var(--ui-shadow-up)!important;
+  transform:translateY(-2px);
+}
+.gc .tt{color:var(--ui-ink)!important}
+.gc .ds{color:var(--ui-ink2)!important}
+.gc .ico{
+  background:var(--ui-ac-soft)!important;border:1px solid var(--ui-line)!important;
+  border-radius:var(--ui-r-sm,8px)!important;
+}
+.gc .tag{
+  border:1px solid var(--ui-line)!important;color:var(--ui-ink2)!important;
+  background:var(--ui-surface)!important;border-radius:var(--ui-r-pill)!important;
+}
+.gc .tag:first-child{color:var(--ui-ac)!important;border-color:var(--ui-ac)!important;background:var(--ui-ac-soft)!important}
+.gc .tag.dim{border-color:var(--ui-line)!important;color:var(--ui-ink3)!important}
+.empty,.nc-foot{color:var(--ui-ink3)!important}
+.nc-shell .search-icon{color:var(--ui-ink3)!important}
+
+/* 四站胶囊固定宽度（站名固定中文，不随语言切换），顶栏其余槽位不位移 */
+.nc-sw{flex:0 0 auto}
+
+/* ---------- 统一的分区标题节奏 ---------- */
+.explore h2,.grp h2,.cats-title,.explore-sec h2{
+  font-size:14px;font-weight:700;letter-spacing:.01em;
+}
+
+/* ---------- 窄屏 ---------- */
+@media(max-width:640px){
+  body > .nc-foot{height:107px}
+  .quiz-card{padding:32px 18px}
+  .hero{border-radius:var(--ui-r)!important}
+}
