@@ -20,15 +20,16 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebSite","name":"火烧云","alternateName":"Sky","url":"https://sky.netcn.org/","description":"汇总六个数值模式与集合预报，给出今晚晚霞、朝霞、星空、月亮的观测概率。","inLanguage":"zh-CN"}
 </script>
-<link rel="stylesheet" href="assets/css/sky.css?v=4">
+<link rel="stylesheet" href="assets/css/sky.css?v=7">
 <link rel="stylesheet" href="/shell/netcn-shell.css?v=20261107c5">
 <link rel="stylesheet" href="/shell/netcn-ui.css?v=20261107c5">
 <script src="/shell/shell.js?v=20261107c5"></script>
-<link rel="modulepreload" href="assets/js/app.js?v=4">
-<link rel="modulepreload" href="assets/js/astro.js?v=4">
-<link rel="modulepreload" href="assets/js/sources.js?v=4">
-<link rel="modulepreload" href="assets/js/scoring.js?v=4">
-<link rel="modulepreload" href="assets/js/cities.js?v=4">
+<link rel="modulepreload" href="assets/js/app.js?v=7">
+<link rel="modulepreload" href="assets/js/astro.js?v=7">
+<link rel="modulepreload" href="assets/js/sources.js?v=7">
+<link rel="modulepreload" href="assets/js/scoring.js?v=7">
+<link rel="modulepreload" href="assets/js/cities.js?v=7">
+<link rel="modulepreload" href="assets/js/map.js?v=7">
 </head>
 <body>
 <nav class="nc-shell" aria-label="netcn 站点导航">
@@ -73,9 +74,28 @@
       <button class="sky-link" id="geoBtn" type="button">用我的位置</button>
     </div>
     <p class="sky-events" id="skyEvents"></p>
+    <div class="sky-geoprompt" id="geoPrompt" hidden>
+      <span class="sky-geoprompt-ic" aria-hidden="true">📍</span>
+      <div class="sky-geoprompt-txt">
+        <b id="geoTitle">看你自己所在的位置</b>
+        <span id="geoDesc">允许定位后，页面会换成你附近的观测条件；不授权就继续看上海。</span>
+      </div>
+      <div class="sky-geoprompt-act">
+        <button type="button" id="geoAllow">允许定位</button>
+        <button type="button" id="geoSkip">先看上海</button>
+      </div>
+    </div>
   </section>
 
   <section class="sky-cards" id="cards" aria-live="polite" aria-label="今晚观测评分"></section>
+
+  <section class="sky-panel" aria-labelledby="mapTitle">
+    <div class="sky-panel-head">
+      <h2 id="mapTitle">晚霞地图 · 你周围约 300 公里</h2>
+      <span class="sky-hint" id="mapHint">颜色越暖，指数越高</span>
+    </div>
+    <div id="skyMap" class="sky-map"><div class="sky-skeleton" style="height:320px"></div></div>
+  </section>
 
   <section class="sky-panel" aria-labelledby="tlTitle">
     <div class="sky-panel-head">
@@ -100,6 +120,22 @@
     </div>
     <div id="modelTable" class="sky-models"></div>
     <div id="ensembleBox" class="sky-ensemble"></div>
+  </section>
+
+  <section class="sky-panel" aria-labelledby="wxTitle">
+    <div class="sky-panel-head">
+      <h2 id="wxTitle">天气与空气</h2>
+      <span class="sky-hint" id="wxHint">现在 + 未来三天</span>
+    </div>
+    <div id="weather" class="sky-wx"></div>
+  </section>
+
+  <section class="sky-panel" aria-labelledby="stTitle">
+    <div class="sky-panel-head">
+      <h2 id="stTitle">台风与热带气旋</h2>
+      <span class="sky-hint" id="stHint">NASA EONET · 近 60 天</span>
+    </div>
+    <div id="storms" class="sky-storms"></div>
   </section>
 
   <section class="sky-panel" aria-labelledby="daysTitle">
@@ -135,6 +171,6 @@
   <p class="sky-dialog-note">光污染为城市级估算；郊区、山区实际条件通常更好。</p>
 </dialog>
 
-<script type="module" src="assets/js/app.js?v=4"></script>
+<script type="module" src="assets/js/app.js?v=7"></script>
 </body>
 </html>

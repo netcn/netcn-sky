@@ -2,10 +2,11 @@
    火烧云 · 页面逻辑
    数据 → 评分 → 渲染；城市默认上海，可切换/定位。
    ============================================================ */
-import { loadSky, interpolator } from "./sources.js";
-import { evaluate, glowFactors } from "./scoring.js";
+import { loadSky, loadGrid, loadStorms, reverseName, interpolator } from "./sources.js";
+import { evaluate, glowFactors, scoreGrid } from "./scoring.js";
 import { CITIES, DEFAULT_CITY, cityById, nearestCity, cityLabel } from "./cities.js";
 import { fmtHM, phaseName } from "./astro.js";
+import { renderSkyMap } from "./map.js";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -82,6 +83,55 @@ const T = {
   }
 };
 
+Object.assign(T.zh, {
+  mapTitle: "晚霞地图 · 你周围约 300 公里",
+  mapHint: "颜色越暖，指数越高",
+  mapReset: "回到我的位置",
+  mapStormTitle: "台风位置",
+  mapStormCap: "显示该热带气旋最近一次记录的位置；晚霞网格仍在你的城市周围，点『回到我的位置』可切回。",
+  mapLoading: "正在计算周围 300 公里的晚霞指数…",
+  mapFail: "地图数据没取到，稍后刷新再试。",
+  wxTitle: "天气与空气", wxHint: "现在 + 未来三天",
+  stTitle: "台风与热带气旋", stHint: "NASA EONET · 近 60 天",
+  feels: "体感", humidity: "湿度", wind: "风", vis: "能见度", cloudCover: "云量", rainChance: "降水概率",
+  air: "空气质量",
+  stormsNone: "当前没有活跃的台风或热带气旋。",
+  stormDist: (km) => `距你约 ${km.toLocaleString()} 公里`,
+  stormView: "在地图上查看",
+  stormSource: "来源：NASA EONET，位置为最近一次记录。",
+  geoTitle: "看你自己所在的位置",
+  geoDesc: "允许定位后，页面会换成你附近的观测条件；不授权就继续看上海。",
+  geoAllow: "允许定位", geoSkip: "先看上海",
+  geoLocating: "正在定位…",
+  geoFail: "定位失败，继续使用当前城市。",
+  geoOK: (n) => `已定位到 ${n}`,
+  myLocation: "我的位置"
+});
+Object.assign(T.en, {
+  mapTitle: "Glow map · about 300 km around you",
+  mapHint: "Warmer colours mean a higher index",
+  mapReset: "Back to my location",
+  mapStormTitle: "Storm position",
+  mapStormCap: "Showing the storm’s latest recorded position. The glow grid stays around your city — use “Back to my location” to return.",
+  mapLoading: "Computing the glow index for the 300 km around you…",
+  mapFail: "Map data unavailable — refresh to try again.",
+  wxTitle: "Weather & air", wxHint: "Now + next three days",
+  stTitle: "Typhoons & tropical cyclones", stHint: "NASA EONET · last 60 days",
+  feels: "Feels like", humidity: "Humidity", wind: "Wind", vis: "Visibility", cloudCover: "Cloud", rainChance: "Rain chance",
+  air: "Air quality",
+  stormsNone: "No active typhoons or tropical cyclones right now.",
+  stormDist: (km) => `about ${km.toLocaleString()} km from you`,
+  stormView: "Show on map",
+  stormSource: "Source: NASA EONET; position is the latest recorded fix.",
+  geoTitle: "See conditions where you are",
+  geoDesc: "Allow location and the page switches to your neighbourhood; otherwise it stays on Shanghai.",
+  geoAllow: "Allow location", geoSkip: "Keep Shanghai",
+  geoLocating: "Locating…",
+  geoFail: "Location failed; staying on the current city.",
+  geoOK: (n) => `Located: ${n}`,
+  myLocation: "My location"
+});
+
 /* 2026 年主要流星雨（国际流星组织预报，静态表；每年更新一次） */
 const METEORS = [
   { md: "01-04", zh: "象限仪座流星雨", en: "Quadrantids", zhr: 80 },
@@ -96,8 +146,34 @@ const METEORS = [
 
 const S = {
   city: null, data: null, days: [], loading: true, error: null,
-  sel: "evening", refreshing: false
+  sel: "evening", refreshing: false,
+  grid: null, gridScores: null, storms: null,
+  mapSpan: 8, mapCenter: null, mapError: false, extrasLoading: false
 };
+
+const WX = {
+  0: ["晴", "Clear", "☀️"], 1: ["大部晴朗", "Mostly clear", "🌤️"], 2: ["多云", "Partly cloudy", "⛅"], 3: ["阴", "Overcast", "☁️"],
+  45: ["雾", "Fog", "🌫️"], 48: ["雾凇", "Rime fog", "🌫️"],
+  51: ["毛毛雨", "Light drizzle", "🌦️"], 53: ["毛毛雨", "Drizzle", "🌦️"], 55: ["密毛毛雨", "Dense drizzle", "🌦️"],
+  56: ["冻毛毛雨", "Freezing drizzle", "🌧️"], 57: ["冻毛毛雨", "Freezing drizzle", "🌧️"],
+  61: ["小雨", "Light rain", "🌧️"], 63: ["中雨", "Rain", "🌧️"], 65: ["大雨", "Heavy rain", "🌧️"],
+  66: ["冻雨", "Freezing rain", "🌧️"], 67: ["冻雨", "Freezing rain", "🌧️"],
+  71: ["小雪", "Light snow", "🌨️"], 73: ["中雪", "Snow", "🌨️"], 75: ["大雪", "Heavy snow", "🌨️"], 77: ["雪粒", "Snow grains", "🌨️"],
+  80: ["阵雨", "Light showers", "🌦️"], 81: ["阵雨", "Showers", "🌦️"], 82: ["强阵雨", "Violent showers", "⛈️"],
+  85: ["阵雪", "Snow showers", "🌨️"], 86: ["强阵雪", "Heavy snow showers", "🌨️"],
+  95: ["雷阵雨", "Thunderstorm", "⛈️"], 96: ["雷暴伴冰雹", "Thunderstorm with hail", "⛈️"], 99: ["强雷暴伴冰雹", "Severe thunderstorm", "⛈️"]
+};
+function wxOf(code) { return WX[code] || ["—", "—", "🌡️"]; }
+
+const AQI = [
+  { max: 20, zh: "优", en: "Good", color: "#2f9e44" },
+  { max: 40, zh: "良", en: "Fair", color: "#74b816" },
+  { max: 60, zh: "中等", en: "Moderate", color: "#f59f00" },
+  { max: 80, zh: "较差", en: "Poor", color: "#e8590c" },
+  { max: 100, zh: "很差", en: "Very poor", color: "#c92a2a" },
+  { max: 9999, zh: "极差", en: "Extremely poor", color: "#862e9c" }
+];
+function aqiOf(v) { return AQI.find((a) => v <= a.max) || AQI[AQI.length - 1]; }
 
 const lang = () => (localStorage.getItem("lang") === "en" ? "en" : "zh");
 const t = () => T[lang()];
@@ -119,17 +195,21 @@ function saveCity(c) {
 function setCity(c, reload = true) {
   S.city = c;
   saveCity(c);
+  markGeoAsked();
+  hideGeoPrompt();
   if (reload) loadData();
   else render();
 }
-function nameOf(c) { return cityLabel(c, lang()); }
+function nameOf(c) { return c.label || cityLabel(c, lang()); }
 
 /* ---------- 数据 ---------- */
 async function loadData(force = false) {
   window.__skyReady = false;
+  window.__skyExtrasReady = false;
   S.loading = !S.data;
   S.refreshing = !!S.data;
   S.error = null;
+  S.grid = null; S.gridScores = null; S.storms = null; S.mapCenter = null; S.mapError = false;
   render();
   try {
     const data = await loadSky(S.city.lat, S.city.lon, { force });
@@ -140,13 +220,41 @@ async function loadData(force = false) {
     S.refreshing = false;
     window.__skyReady = true;
     render();
+    loadExtras(force);
   } catch (e) {
     S.loading = false;
     S.refreshing = false;
     S.error = e;
+    S.mapError = true;
     window.__skyReady = true;
+    window.__skyExtrasReady = true;
     render();
   }
+}
+
+/* 地图网格 + 台风：不阻塞首屏评分 */
+async function loadExtras(force = false) {
+  const ev = S.days[0];
+  if (!ev) return;
+  S.extrasLoading = true;
+  renderMapSection();
+  const [g, s] = await Promise.allSettled([
+    loadGrid(S.city.lat, S.city.lon, { force }),
+    loadStorms({ force })
+  ]);
+  if (g.status === "fulfilled") {
+    S.grid = g.value;
+    S.gridScores = scoreGrid(g.value, ev.sun.sunset, ev.evening ? ev.evening.ctx.aod : 0.2);
+    S.mapError = false;
+  } else {
+    console.warn("grid", g.reason);
+    S.mapError = true;
+  }
+  S.storms = s.status === "fulfilled" ? s.value.list : [];
+  S.extrasLoading = false;
+  window.__skyExtrasReady = true;
+  renderMapSection();
+  renderStorms();
 }
 
 /* ---------- 渲染：首屏 ---------- */
@@ -495,6 +603,190 @@ function renderEvents() {
   el.innerHTML = `🌠 ${en ? "Next up" : "近期天象"}：${parts.join('<span class="sep">·</span>')}`;
 }
 
+/* ---------- 渲染：晚霞地图 ---------- */
+let mapSeq = 0;
+async function renderMapSection() {
+  const el = $("#skyMap");
+  if (!el) return;
+  $("#mapTitle").textContent = S.mapCenter ? t().mapStormTitle : t().mapTitle;
+  $("#mapHint").innerHTML = S.mapCenter
+    ? `<button class="sky-link" id="mapReset" type="button">${t().mapReset}</button>`
+    : t().mapHint;
+  const rb = $("#mapReset");
+  if (rb) rb.onclick = () => { S.mapCenter = null; S.mapSpan = 8; renderMapSection(); };
+  if (!S.gridScores || !S.gridScores.length) {
+    el.innerHTML = `<div class="sky-map-loading">${S.mapError ? t().mapFail : t().mapLoading}</div>`;
+    return;
+  }
+  const seq = ++mapSeq;
+  const center = S.mapCenter || { lat: S.city.lat, lon: S.city.lon };
+  try {
+    await renderSkyMap(el, {
+      lat: S.city.lat, lon: S.city.lon,
+      centerLat: center.lat, centerLon: center.lon,
+      span: S.mapSpan,
+      points: S.gridScores,
+      cities: CITIES,
+      storms: S.storms || [],
+      lang: lang(),
+      meLabel: nameOf(S.city),
+      focus: !!S.mapCenter,
+      compact: window.innerWidth < 640,
+      onZoom: (s) => { if (seq === mapSeq) { S.mapSpan = s; renderMapSection(); } }
+    });
+  } catch (e) {
+    if (seq === mapSeq) el.innerHTML = `<div class="sky-map-loading">${t().mapFail}</div>`;
+  }
+}
+
+/* ---------- 渲染：天气与空气 ---------- */
+function renderWeather() {
+  const box = $("#weather");
+  if (!S.data) { box.innerHTML = `<div class="sky-skeleton" style="height:160px"></div>`; return; }
+  const cur = S.data.ctx.current;
+  const dd = S.data.ctx.dailyDetail;
+  const aq = S.data.air && S.data.air.current;
+  if (!cur && !dd) { box.innerHTML = `<p class="sky-hint">—</p>`; return; }
+  const en = lang() === "en";
+  const code = cur ? cur.weather_code : (dd ? dd.weather_code[0] : 0);
+  const wx = wxOf(code);
+  const temp = cur ? Math.round(cur.temperature_2m) : "—";
+  const feels = cur ? Math.round(cur.apparent_temperature) : "—";
+  const facts = [];
+  if (cur) {
+    facts.push(`${t().feels} ${feels}°`);
+    facts.push(`${t().humidity} ${Math.round(cur.relative_humidity_2m)}%`);
+    facts.push(`${t().wind} ${windName(cur.wind_direction_10m, en)} ${Math.round(cur.wind_speed_10m)} km/h`);
+    facts.push(`${t().cloudCover} ${Math.round(cur.cloud_cover)}%`);
+    const vis = interpolator(S.data.ctx.times, S.data.ctx.visibility)(Date.now());
+    if (vis != null) facts.push(`${t().vis} ${vis.toFixed(0)} km`);
+  }
+  let aqHtml = "";
+  if (aq && Number.isFinite(aq.european_aqi)) {
+    const band = aqiOf(aq.european_aqi);
+    aqHtml = `<div class="sky-aq" style="--c:${band.color}">
+      <div class="sky-aq-score"><b>${Math.round(aq.european_aqi)}</b><span>${en ? band.en : band.zh}</span></div>
+      <div class="sky-aq-meta">
+        <span>PM2.5 <b>${round(aq.pm2_5)}</b></span><span>PM10 <b>${round(aq.pm10)}</b></span>
+        <span>O₃ <b>${round(aq.ozone)}</b></span><span>NO₂ <b>${round(aq.nitrogen_dioxide)}</b></span>
+      </div>
+      <div class="sky-aq-label">${t().air} · AQI</div>
+    </div>`;
+  }
+  let daysHtml = "";
+  if (dd && dd.time) {
+    daysHtml = dd.time.slice(0, 3).map((d, i) => {
+      const w = wxOf(dd.weather_code[i]);
+      const label = i === 0 ? t().today : i === 1 ? t().tomorrow : t().dayAfter;
+      return `<div class="sky-wx-day">
+        <span>${label}</span>
+        <b>${w[2]} ${Math.round(dd.temperature_2m_max[i])}° / ${Math.round(dd.temperature_2m_min[i])}°</b>
+        <em>${Math.round(dd.precipitation_probability_max[i] || 0)}%</em>
+      </div>`;
+    }).join("");
+  }
+  box.innerHTML = `<div class="sky-wx-top">
+      <div class="sky-wx-icon">${wx[2]}</div>
+      <div class="sky-wx-temp"><b>${temp}°</b><span>${en ? wx[1] : wx[0]}</span></div>
+      <div class="sky-wx-facts">${facts.map((f) => `<span>${f}</span>`).join("")}</div>
+    </div>
+    ${aqHtml}
+    ${daysHtml ? `<div class="sky-wx-days">${daysHtml}</div>` : ""}`;
+}
+function windName(deg, en) {
+  const dirsZh = ["北", "东北", "东", "东南", "南", "西南", "西", "西北"];
+  const dirsEn = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  if (!Number.isFinite(deg)) return "—";
+  const i = Math.round(deg / 45) % 8;
+  return en ? dirsEn[i] : dirsZh[i] + "风";
+}
+
+/* ---------- 渲染：台风 ---------- */
+function renderStorms() {
+  const box = $("#storms");
+  if (!box) return;
+  $("#stTitle").textContent = t().stTitle;
+  $("#stHint").textContent = t().stHint;
+  if (S.storms === null) { box.innerHTML = `<div class="sky-skeleton" style="height:80px"></div>`; return; }
+  if (!S.storms.length) { box.innerHTML = `<p class="sky-hint">${t().stormsNone}</p>`; return; }
+  const en = lang() === "en";
+  const list = S.storms.slice().sort((a, b) => distKm(S.city.lat, S.city.lon, a.lat, a.lon) - distKm(S.city.lat, S.city.lon, b.lat, b.lon));
+  box.innerHTML = `<div class="sky-storm-list">${list.map((s) => {
+    const d = distKm(S.city.lat, S.city.lon, s.lat, s.lon);
+    const date = (s.date || "").slice(5, 10).replace("-", "/");
+    return `<article class="sky-storm">
+      <div class="sky-storm-name">🌀 ${s.title}</div>
+      <div class="sky-storm-meta">${en ? "lat" : "北纬"} ${Math.abs(s.lat).toFixed(1)}° · ${en ? "lon" : "东经"} ${Math.abs(s.lon).toFixed(1)}° · ${t().stormDist(Math.round(d))}${date ? ` · ${date}` : ""}</div>
+      <button class="sky-link" type="button" data-storm="${s.id}">${t().stormView}</button>
+    </article>`;
+  }).join("")}</div><p class="sky-storm-src">${t().stormSource}</p>`;
+  box.querySelectorAll("[data-storm]").forEach((b) => b.onclick = () => {
+    const s = S.storms.find((x) => x.id === b.dataset.storm);
+    if (!s) return;
+    S.mapCenter = { lat: s.lat, lon: s.lon };
+    S.mapSpan = 18;
+    renderMapSection();
+    $("#skyMap").scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
+
+function distKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad, dLon = (lon2 - lon1) * rad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/* ---------- 定位与提示 ---------- */
+function hideGeoPrompt() {
+  const el = $("#geoPrompt");
+  if (el) el.hidden = true;
+}
+function showGeoPromptIfNeeded() {
+  let saved = null, asked = null;
+  try { saved = localStorage.getItem(STORE_CITY); } catch (e) {}
+  try { asked = localStorage.getItem("sky_geo_asked"); } catch (e) {}
+  const el = $("#geoPrompt");
+  if (el) el.hidden = !!(saved || asked);
+}
+function markGeoAsked() {
+  try { localStorage.setItem("sky_geo_asked", "1"); } catch (e) {}
+}
+function locate() {
+  if (!navigator.geolocation) { toast(t().geoFail); return; }
+  const btn = $("#geoBtn");
+  const old = btn.textContent;
+  btn.textContent = t().geoLocating;
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const { latitude, longitude } = pos.coords;
+    const near = nearestCity(latitude, longitude) || DEFAULT_CITY;
+    const rev = await reverseName(latitude, longitude, lang());
+    const name = rev && rev.label ? rev.label : t().myLocation;
+    btn.textContent = t().geo;
+    markGeoAsked();
+    hideGeoPrompt();
+    setCity({ id: "geo", zh: name, en: name, label: name, province: "", lat: latitude, lon: longitude, bortle: near.bortle });
+    toast(t().geoOK(name));
+  }, () => {
+    btn.textContent = old || t().geo;
+    toast(t().geoFail);
+  }, { timeout: 10000, maximumAge: 600000 });
+}
+let toastTimer = null;
+function toast(msg, ms = 3200) {
+  let el = document.getElementById("skyToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "skyToast";
+    el.className = "sky-toast";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("on"), ms);
+}
+
 /* ---------- 渲染：说明 ---------- */
 function renderNote() {
   const upd = S.data && S.data.updated ? fmtHM(new Date(S.data.updated), 8) : "—";
@@ -548,18 +840,11 @@ function bind() {
   $("#cityFilter").addEventListener("input", (e) => renderCityList(e.target.value));
   $("#cityDialog").addEventListener("click", (e) => { if (e.target.id === "cityDialog") closeCity(); });
   $("#refreshBtn").onclick = () => loadData(true);
-  $("#geoBtn").onclick = () => {
-    if (!navigator.geolocation) return;
-    $("#geoBtn").textContent = lang() === "en" ? "Locating…" : "定位中…";
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const { latitude, longitude } = pos.coords;
-      const near = nearestCity(latitude, longitude) || DEFAULT_CITY;
-      setCity({ id: "geo", zh: "我的位置", en: "My location", province: "定位", lat: latitude, lon: longitude, bortle: near.bortle });
-      $("#geoBtn").textContent = t().geo;
-    }, () => {
-      $("#geoBtn").textContent = t().geo;
-    }, { timeout: 8000, maximumAge: 600000 });
-  };
+  $("#geoBtn").onclick = () => locate();
+  const ga = $("#geoAllow");
+  if (ga) ga.onclick = () => { markGeoAsked(); locate(); };
+  const gs = $("#geoSkip");
+  if (gs) gs.onclick = () => { markGeoAsked(); hideGeoPrompt(); };
   $("#citySearch").addEventListener("input", (e) => renderCitySuggest(e.target.value));
   $("#citySearch").addEventListener("focus", (e) => renderCitySuggest(e.target.value));
   $("#citySearch").addEventListener("keydown", (e) => { if (e.key === "Escape") { $("#citySuggest").hidden = true; } });
@@ -569,16 +854,32 @@ function bind() {
 }
 
 /* ---------- 总渲染 ---------- */
+function renderStaticLabels() {
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  set("wxTitle", t().wxTitle);
+  set("wxHint", t().wxHint);
+  set("geoTitle", t().geoTitle);
+  set("geoDesc", t().geoDesc);
+  set("geoAllow", t().geoAllow);
+  set("geoSkip", t().geoSkip);
+  const q = $("#citySearch");
+  if (q) q.placeholder = t().cloudPh;
+}
+
 function render() {
+  renderStaticLabels();
   renderHero();
   renderCards();
   renderTimeline();
   renderDetail();
   renderModels();
   renderEnsemble();
+  renderWeather();
+  renderStorms();
   renderDays();
   renderEvents();
   renderNote();
+  renderMapSection();
 }
 
 /* ---------- 启动 ---------- */
@@ -586,5 +887,6 @@ S.city = loadCity();
 window.__sky = S;
 $("#citySearch").placeholder = t().cloudPh;
 bind();
+showGeoPromptIfNeeded();
 render();
 loadData();

@@ -103,10 +103,14 @@ async function fetchEnsemble(lat, lon) {
 async function fetchContext(lat, lon) {
   const url = `${API}?latitude=${lat}&longitude=${lon}`
     + `&hourly=precipitation_probability,visibility,dew_point_2m,temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`
-    + `&daily=sunrise,sunset&timezone=Asia%2FShanghai&forecast_days=3`;
+    + `&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m`
+    + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset`
+    + `&timezone=Asia%2FShanghai&forecast_days=3`;
   const d = await getJSON(url);
   const h = d.hourly || {};
   return {
+    current: d.current || null,
+    dailyDetail: d.daily || null,
     times: timeAxis(h.time),
     precip: nums(h.precipitation_probability),
     // Open-Meteo 的能见度单位是米，统一换算成公里
@@ -123,10 +127,13 @@ async function fetchContext(lat, lon) {
 /* ---------- ④ 空气质量 ---------- */
 async function fetchAir(lat, lon) {
   const url = `${AQ}?latitude=${lat}&longitude=${lon}`
-    + `&hourly=pm2_5,pm10,aerosol_optical_depth,dust&timezone=Asia%2FShanghai&forecast_days=3`;
+    + `&hourly=pm2_5,pm10,aerosol_optical_depth,dust`
+    + `&current=european_aqi,us_aqi,pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide`
+    + `&timezone=Asia%2FShanghai&forecast_days=3`;
   const d = await getJSON(url, 20000);
   const h = d.hourly || {};
   return {
+    current: d.current || null,
     times: timeAxis(h.time),
     aod: nums(h.aerosol_optical_depth),
     pm25: nums(h.pm2_5),
@@ -196,6 +203,123 @@ export async function loadSky(lat, lon, opts = {}) {
     /* 配额满时忽略，不影响主流程 */
   }
   return { ...data, cached: false };
+}
+
+/* ---------- ⑥ 区域网格（晚霞地图） ---------- */
+const GRID_N = 5;
+const GRID_STEP = 0.75; // 度；按纬度修正经度间距，约 70–75 公里
+const GRID_MODELS = ["ecmwf_ifs025", "cma_grapes_global", "icon_seamless"];
+const GRID_TTL = 20 * 60 * 1000;
+const GRID_PREFIX = "sky_grid_v1_";
+
+export async function loadGrid(lat, lon, opts = {}) {
+  const key = GRID_PREFIX + lat.toFixed(2) + "_" + lon.toFixed(2);
+  if (!opts.force) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const c = JSON.parse(raw);
+        if (c && c.t && Date.now() - c.t < GRID_TTL && c.d && c.d.points) {
+          return { ...c.d, cached: true };
+        }
+      }
+    } catch (e) {}
+  }
+  const cos = Math.max(0.3, Math.cos(lat * Math.PI / 180));
+  const pts = [];
+  const half = (GRID_N - 1) / 2;
+  for (let j = -half; j <= half; j++) {
+    for (let i = -half; i <= half; i++) {
+      pts.push({
+        lat: +(lat + j * GRID_STEP).toFixed(3),
+        lon: +(lon + (i * GRID_STEP) / cos).toFixed(3)
+      });
+    }
+  }
+  const base = `latitude=${pts.map((p) => p.lat).join(",")}&longitude=${pts.map((p) => p.lon).join(",")}`
+    + `&timezone=Asia%2FShanghai&forecast_days=1`;
+  const cloudUrl = `${API}?${base}&hourly=cloud_cover_low,cloud_cover_mid,cloud_cover_high&models=${GRID_MODELS.join(",")}`;
+  const ctxUrl = `${API}?${base}&hourly=visibility,precipitation_probability,dew_point_2m,temperature_2m`;
+  const [cloud, ctxRaw] = await Promise.all([getJSON(cloudUrl, 35000), getJSON(ctxUrl, 35000)]);
+  const cloudArr = Array.isArray(cloud) ? cloud : [cloud];
+  const ctxArr = Array.isArray(ctxRaw) ? ctxRaw : [ctxRaw];
+  const points = pts.map((p, idx) => {
+    const h = (cloudArr[idx] && cloudArr[idx].hourly) || {};
+    const c = (ctxArr[idx] && ctxArr[idx].hourly) || {};
+    const models = GRID_MODELS.filter((m) => {
+      const v = h["cloud_cover_low_" + m];
+      return Array.isArray(v) && v.some((x) => x != null);
+    }).map((m) => ({
+      id: m,
+      low: nums(h["cloud_cover_low_" + m]),
+      mid: nums(h["cloud_cover_mid_" + m]),
+      high: nums(h["cloud_cover_high_" + m])
+    }));
+    return {
+      lat: p.lat,
+      lon: p.lon,
+      times: timeAxis(h.time),
+      models,
+      ctx: {
+        times: timeAxis(c.time),
+        visibility: nums(c.visibility).map((v) => (v == null ? null : v / 1000)),
+        precip: nums(c.precipitation_probability),
+        dew: nums(c.dew_point_2m),
+        temp: nums(c.temperature_2m)
+      }
+    };
+  });
+  const data = { center: { lat, lon }, points, updated: Date.now() };
+  try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), d: data })); } catch (e) {}
+  return { ...data, cached: false };
+}
+
+/* ---------- ⑦ 活跃热带气旋（NASA EONET） ---------- */
+const STORM_TTL = 30 * 60 * 1000;
+const STORM_KEY = "sky_storms_v2";
+
+export async function loadStorms(opts = {}) {
+  if (!opts.force) {
+    try {
+      const raw = localStorage.getItem(STORM_KEY);
+      if (raw) {
+        const c = JSON.parse(raw);
+        if (c && c.t && Date.now() - c.t < STORM_TTL && c.d) return { ...c.d, cached: true };
+      }
+    } catch (e) {}
+  }
+  const d = await getJSON("https://eonet.gsfc.nasa.gov/api/v3/events?category=severeStorms&status=open&days=60", 20000);
+  const list = (d.events || []).map((e) => {
+    const g = e.geometry && e.geometry[e.geometry.length - 1];
+    if (!g || !Array.isArray(g.coordinates)) return null;
+    if (!/typhoon|tropical cyclone|hurricane|cyclone/i.test(e.title || "")) return null;
+    return {
+      id: e.id,
+      title: e.title,
+      lat: g.coordinates[1],
+      lon: g.coordinates[0],
+      date: g.date,
+      link: (e.sources && e.sources[0] && e.sources[0].url) || "https://eonet.gsfc.nasa.gov/"
+    };
+  }).filter(Boolean);
+  const data = { list, updated: Date.now() };
+  try { localStorage.setItem(STORM_KEY, JSON.stringify({ t: Date.now(), d: data })); } catch (e) {}
+  return { ...data, cached: false };
+}
+
+/* ---------- ⑧ 反查地名 ---------- */
+export async function reverseName(lat, lon, lang = "zh") {
+  try {
+    const loc = lang === "en" ? "en" : "zh-Hans";
+    const d = await getJSON(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=${loc}`, 12000);
+    const city = (d.city || d.principalSubdivision || "").trim();
+    const district = (d.locality || "").trim();
+    if (!city && !district) return null;
+    const label = city && district && district !== city ? `${city} · ${district}` : (city || district);
+    return { city, district, label };
+  } catch (e) {
+    return null;
+  }
 }
 
 /* 线性插值：给定源时间轴和值，返回 at(instant) */

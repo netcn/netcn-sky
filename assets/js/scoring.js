@@ -99,6 +99,39 @@ export function moonScore({ illum, alt, cloud, visible }) {
   return { total: clamp(total, 0, 100), factors: { illum: illum * 100, alt: altScore, cloud: cloudScore } };
 }
 
+/* ---------- 区域网格评分（晚霞地图） ---------- */
+// 网格只取云层结构与地面气象，气溶胶沿用主点位的 AOD（空间变化小，避免再发 25 个请求）
+export function scoreGrid(grid, sunset, aod = 0.2) {
+  if (!grid || !grid.points || !sunset) return [];
+  const marks = [-10, 10, 26].map((m) => new Date(sunset.getTime() + m * 60000));
+  const avg = (fn) => {
+    const v = marks.map(fn).filter((x) => x != null);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  };
+  return grid.points.map((p) => {
+    const ctx = {
+      visibility: avg((s) => interpolator(p.ctx.times, p.ctx.visibility)(s)),
+      precip: avg((s) => interpolator(p.ctx.times, p.ctx.precip)(s)),
+      dew: avg((s) => interpolator(p.ctx.times, p.ctx.dew)(s)),
+      temp: avg((s) => interpolator(p.ctx.times, p.ctx.temp)(s)),
+      aod
+    };
+    ctx.dewDep = (ctx.temp != null && ctx.dew != null) ? ctx.temp - ctx.dew : 3;
+    const scores = [];
+    for (const m of p.models) {
+      const it = (arr) => interpolator(p.times, arr);
+      const cloud = {
+        low: avg((s) => it(m.low)(s)),
+        mid: avg((s) => it(m.mid)(s)),
+        high: avg((s) => it(m.high)(s))
+      };
+      scores.push(glowFactors(cloud, ctx).total);
+    }
+    const score = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    return { lat: p.lat, lon: p.lon, score: clamp(score, 0, 100) };
+  });
+}
+
 /* ---------- 一次评估 ---------- */
 export function evaluate(data, city, date = new Date()) {
   const lat = city.lat, lon = city.lon, bortle = city.bortle || 7;
