@@ -512,12 +512,6 @@ html.dark .leaflet-control-attribution a { color: #c8d2e2 !important; }
   .sky-days { grid-template-columns: 1fr; }
   .sky-city-list { grid-template-columns: repeat(3, 1fr); }
 }
-/* 5 个站名在 390px 下比四站多一格，收紧胶囊间距，保证与家族同为两行顶栏 */
-@media (max-width: 430px) {
-  [data-nc="sky"] .nc-sw { gap: 2px; }
-  [data-nc="sky"] .nc-sw a { padding: 0 5px; font-size: 11px; }
-}
-
 @media (max-width: 640px) {
   .sky-hero { padding: 18px 15px 16px; border-radius: 16px; }
   .sky-hero h1 { font-size: 27px; }

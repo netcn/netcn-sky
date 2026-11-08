@@ -22,18 +22,23 @@
 [data-nc="ask"]{--nc-ac:#0f9d8c;--nc-ac2:#5ee6c8;--nc-soft:rgba(15,157,140,.10);--nc-glow:rgba(15,157,140,.28)}
 [data-nc="quiz"]{--nc-ac:#c2410c;--nc-ac2:#ffb56b;--nc-soft:rgba(194,65,12,.09);--nc-glow:rgba(194,65,12,.26)}
 [data-nc="game"]{--nc-ac:#7c5cff;--nc-ac2:#00f0ff;--nc-soft:rgba(124,92,255,.14);--nc-glow:rgba(124,92,255,.30)}
+[data-nc="sky"]{--nc-ac:#d1432a;--nc-ac2:#ffb08a;--nc-soft:rgba(209,67,42,.10);--nc-glow:rgba(209,67,42,.26)}
 [data-theme="dark"] [data-nc="nav"],.dark [data-nc="nav"],[data-nc-tone="dark"][data-nc="nav"]{--nc-ac:#60a5fa;--nc-soft:rgba(96,165,250,.14);--nc-glow:rgba(96,165,250,.30)}
 [data-theme="dark"] [data-nc="ask"],.dark [data-nc="ask"],[data-nc-tone="dark"][data-nc="ask"]{--nc-ac:#1fd6b6;--nc-soft:rgba(31,214,182,.14);--nc-glow:rgba(31,214,182,.30)}
 [data-theme="dark"] [data-nc="quiz"],.dark [data-nc="quiz"],[data-nc-tone="dark"][data-nc="quiz"]{--nc-ac:#fb923c;--nc-soft:rgba(251,146,60,.14);--nc-glow:rgba(251,146,60,.30)}
+[data-theme="dark"] [data-nc="sky"],.dark [data-nc="sky"],[data-nc-tone="dark"][data-nc="sky"]{--nc-ac:#ff7a55;--nc-soft:rgba(255,122,85,.14);--nc-glow:rgba(255,122,85,.28)}
 
 /* ---------- 顶栏 ---------- */
+/* 各站全局 box-sizing 不同（部分站有 reset、部分没有），壳层统一固定，
+   否则 1px 边框会让胶囊高度比其他站多 2px */
+.nc-shell,.nc-shell *,.nc-inner,.nc-inner *,.nc-foot,.nc-foot *{box-sizing:border-box}
 .nc-shell{display:flex;align-items:center;flex-wrap:wrap;gap:var(--nc-gap);
   position:sticky;top:0;z-index:100;padding:5px var(--ui-pad,0);
   background:var(--nc-card);border-bottom:1px solid var(--nc-line)}
 .nc-inner{display:flex;align-items:center;flex-wrap:wrap;gap:var(--nc-gap)}
 
 .nc-brand{display:flex;align-items:center;gap:6px;flex:0 0 auto;min-height:var(--nc-h);
-  font-size:14px;font-weight:800;letter-spacing:-.01em;color:var(--nc-ink);text-decoration:none;white-space:nowrap}
+  font-size:14px;font-weight:800;line-height:1.5;letter-spacing:-.01em;color:var(--nc-ink);text-decoration:none;white-space:nowrap}
 /* 品牌标记：四站各一只蘑菇；mk-*.png 随本 CSS 一起分发到各站 shell/ */
 .nc-mk{width:28px;height:28px;flex:0 0 auto;display:grid;place-items:center;
   font-size:0;color:transparent;overflow:hidden;background-image:url("mk-nav.png");
@@ -42,6 +47,7 @@
 [data-nc="ask"] .nc-mk{background-image:url("mk-ask.png")}
 [data-nc="quiz"] .nc-mk{background-image:url("mk-quiz.png")}
 [data-nc="game"] .nc-mk,[data-nc="game"] .brand-ic{background-image:url("mk-game.png")}
+[data-nc="sky"] .nc-mk,[data-nc="sky"] .brand-ic{background-image:url("mk-sky.png")}
 [data-nc="game"] .brand-ic{background-repeat:no-repeat;background-position:center;
   background-size:contain}
 [data-nc="game"] .brand-ic>*{display:none}
@@ -51,7 +57,7 @@
 .nc-brand-txt{white-space:nowrap;min-width:4em}
 
 .nc-sw{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.nc-sw a{display:inline-flex;align-items:center;font-size:12.5px;font-weight:700;white-space:nowrap;
+.nc-sw a{display:inline-flex;align-items:center;font-size:12.5px;font-weight:700;white-space:nowrap;line-height:1.5;
   min-height:var(--nc-h);padding:0 10px;border-radius:8px;text-decoration:none;
   color:var(--nc-ink2);border:1px solid var(--nc-line);background:transparent;
   transition:color .16s,border-color .16s,background .16s}
@@ -104,5 +110,21 @@
   .nc-sw a{padding:0 7px;font-size:11.5px}
   .nc-foot-site{margin-left:0;text-align:left;flex:1 1 100%}
 }
+
+/* 五站导航：窄屏优先保证一行放下 5 个入口，品牌收成图标 */
+@media (max-width:560px){
+  .nc-brand{font-size:12px;gap:4px}
+  .nc-mk{width:24px;height:24px}
+  .nc-sw a{padding:0 5px;font-size:10.5px}
+  .nc-sw{gap:2px}
+  .nc-shell{gap:5px}
+  .nc-shell .nc-search{min-width:90px}
+}
+@media (max-width:360px){
+  .nc-shell{--ui-pad:8px}
+  .nc-sw a{padding:0 4px;font-size:10.5px}
+  .nc-sw{gap:2px}
+}
+
 @media (pointer:coarse){.nc-shell,.nc-inner{--nc-h:44px}.nc-mk{width:32px;height:32px}}
 @media (prefers-reduced-motion:reduce){.nc-shell *,.nc-inner *,.nc-foot *{transition:none!important}}
