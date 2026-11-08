@@ -359,28 +359,67 @@ function apply() {
     stormGroup = L.layerGroup();
     for (const s of storms) {
       const tr = (s.track || []).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
-      if (tr.length > 1) {
-        L.polyline(tr.map((p) => [p.lat, p.lon]), {
-          color: "#ffb36b", weight: 1.6, opacity: 0.7, interactive: false
+      const off = s.official;
+      const hasFc = off && off.future && off.future.length >= 2;
+
+      /* 历史路径：优先官方观测点（更密、更准），否则用 EONET */
+      if (hasFc) {
+        const hist = off.past && off.past.length > 1 ? off.past : [];
+        if (hist.length > 1) {
+          L.polyline(hist.map((p) => [p.lat, p.lon]), {
+            color: "#ffb36b", weight: 1.7, opacity: 0.75, interactive: false
+          }).addTo(stormGroup);
+        }
+        /* 官方误差锥 */
+        if (off.cone && off.cone.length >= 3) {
+          L.polygon(off.cone, {
+            color: "#a78bfa", weight: 1, opacity: 0.5,
+            fillColor: "#a78bfa", fillOpacity: 0.09, interactive: false, dashArray: "3 4"
+          }).addTo(stormGroup);
+        }
+        /* 官方预报：从最后一个历史点连到全部未来预报点 */
+        const cur = hist[hist.length - 1] || { lat: s.lat, lon: s.lon };
+        const fc = [[cur.lat, cur.lon]].concat(off.future.map((p) => [p.lat, p.lon]));
+        L.polyline(fc, {
+          color: "#a78bfa", weight: 2, opacity: 0.95, dashArray: "6 5", interactive: false
         }).addTo(stormGroup);
-        const a = tr[Math.max(0, tr.length - 6)];
-        const b = tr[tr.length - 1];
-        const hrs = (new Date(b.date) - new Date(a.date)) / 3600000;
-        if (hrs > 0) {
-          const vx = (b.lon - a.lon) / hrs;
-          const vy = (b.lat - a.lat) / hrs;
-          const p24 = [b.lat + vy * 24, b.lon + vx * 24];
-          const p48 = [b.lat + vy * 48, b.lon + vx * 48];
-          L.polyline([[b.lat, b.lon], p24], {
-            color: "#ffd9a8", weight: 1.4, opacity: 0.85, dashArray: "4 5", interactive: false
-          }).addTo(stormGroup);
-          L.polyline([p24, p48], {
-            color: "#ffd9a8", weight: 1.2, opacity: 0.5, dashArray: "3 6", interactive: false
-          }).addTo(stormGroup);
-          L.circleMarker(p24, { radius: 3, color: "#ffd9a8", weight: 1.4, fillColor: "#ff8a3d", fillOpacity: 0.85 })
-            .bindTooltip(L0 === "en" ? "+24h (linear)" : "+24h 外推", {
-              permanent: true, direction: "right", className: "lm-storm", offset: [5, 0]
+        off.future.forEach((p, i) => {
+          const hrs = Math.round((p.t - Date.now()) / 3600000);
+          const isLast = i === off.future.length - 1;
+          L.circleMarker([p.lat, p.lon], {
+            radius: isLast ? 4 : 2.6, color: "#ddd0ff", weight: 1.2,
+            fillColor: "#8b5cf6", fillOpacity: 0.95
+          }).bindTooltip(isLast
+            ? (L0 === "en" ? `+${hrs}h official` : `+${hrs}h 官方预报`)
+            : (L0 === "en" ? `+${hrs}h` : `+${hrs}h`), {
+              permanent: isLast, direction: "right", className: "lm-fc", offset: [5, 0]
             }).addTo(stormGroup);
+        });
+      } else {
+        /* 没有官方预报：保留原来的线性外推，橙色以示区别 */
+        if (tr.length > 1) {
+          L.polyline(tr.map((p) => [p.lat, p.lon]), {
+            color: "#ffb36b", weight: 1.6, opacity: 0.7, interactive: false
+          }).addTo(stormGroup);
+          const a = tr[Math.max(0, tr.length - 6)];
+          const b = tr[tr.length - 1];
+          const hrs = (new Date(b.date) - new Date(a.date)) / 3600000;
+          if (hrs > 0) {
+            const vx = (b.lon - a.lon) / hrs;
+            const vy = (b.lat - a.lat) / hrs;
+            const p24 = [b.lat + vy * 24, b.lon + vx * 24];
+            const p48 = [b.lat + vy * 48, b.lon + vx * 48];
+            L.polyline([[b.lat, b.lon], p24], {
+              color: "#ffd9a8", weight: 1.4, opacity: 0.85, dashArray: "4 5", interactive: false
+            }).addTo(stormGroup);
+            L.polyline([p24, p48], {
+              color: "#ffd9a8", weight: 1.2, opacity: 0.5, dashArray: "3 6", interactive: false
+            }).addTo(stormGroup);
+            L.circleMarker(p24, { radius: 3, color: "#ffd9a8", weight: 1.4, fillColor: "#ff8a3d", fillOpacity: 0.85 })
+              .bindTooltip(L0 === "en" ? "+24h (linear)" : "+24h 外推", {
+                permanent: true, direction: "right", className: "lm-storm", offset: [5, 0]
+              }).addTo(stormGroup);
+          }
         }
       }
       L.circleMarker([s.lat, s.lon], { radius: 5, color: "#ffd9a8", weight: 2, fillColor: "#ff8a3d", fillOpacity: 0.9 })
@@ -422,7 +461,14 @@ function apply() {
           const a = tr[Math.max(0, tr.length - 6)];
           const b = tr[tr.length - 1];
           const hrs = (new Date(b.date) - new Date(a.date)) / 3600000;
-          if (hrs > 0) pts.push([b.lat + ((b.lat - a.lat) / hrs) * 24, b.lon + ((b.lon - a.lon) / hrs) * 24]);
+          if (hrs > 0 && !(opts.focus.official && opts.focus.official.future && opts.focus.official.future.length >= 2)) {
+            pts.push([b.lat + ((b.lat - a.lat) / hrs) * 24, b.lon + ((b.lon - a.lon) / hrs) * 24]);
+          }
+          const fo = opts.focus.official;
+          if (fo) {
+            if (fo.past) for (const p of fo.past) pts.push([p.lat, p.lon]);
+            if (fo.future) for (const p of fo.future) pts.push([p.lat, p.lon]);
+          }
           map.fitBounds(L.latLngBounds(pts), { padding: [30, 30], maxZoom: 6 });
         } else {
           map.setView([opts.focus.lat, opts.focus.lon], 5);

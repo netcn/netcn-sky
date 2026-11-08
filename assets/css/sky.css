@@ -414,6 +414,13 @@ html.dark .sky-mapbar .sky-seg button[aria-pressed="true"] { background: #242c3a
   white-space: nowrap;
 }
 .lm-storm::before { display: none !important; }
+.lm-fc {
+  padding: 1px 5px !important; border: 1px solid rgba(196, 181, 253, .55) !important;
+  border-radius: 5px !important; background: rgba(49, 34, 84, .88) !important;
+  color: #e9ddff !important; font-size: 10px !important; box-shadow: none !important;
+  white-space: nowrap;
+}
+.lm-fc::before { display: none !important; }
 
 .lm-empty {
   position: absolute; inset: 0; z-index: 600;
@@ -475,6 +482,12 @@ html.dark .leaflet-control-attribution a { color: #c8d2e2 !important; }
 .sky-storm-list { display: grid; gap: 8px; }
 .sky-storm { display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border: 1px solid var(--ui-line); border-radius: 10px; }
 .sky-storm-name { font-size: 13px; font-weight: 800; color: var(--ui-ink); }
+/* 台风：官方预报标签 */
+.sky-storm-fc { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-top:7px; font-size:11.5px; color:var(--ui-ac); font-weight:600; }
+.sky-storm-fc.muted { color:var(--ui-ink3); font-weight:500; }
+.sky-fc-tag { padding:2px 7px; border-radius:5px; background:rgba(122,92,255,.12); color:#7c5cff; font-size:10px; letter-spacing:.04em; }
+html.dark .sky-fc-tag { background:rgba(160,140,255,.18); color:#b9a8ff; }
+.sky-fc-mini { margin-left:8px; font-size:10px; font-weight:500; color:var(--ui-ink3); }
 .sky-storm-move { margin-top: 3px; font-size: 11.5px; color: var(--ui-ink2); }
 .sky-storm-meta { font-size: 11.5px; color: var(--ui-ink3); line-height: 1.55; }
 .sky-storm .sky-link { align-self: flex-start; margin-top: 2px; }

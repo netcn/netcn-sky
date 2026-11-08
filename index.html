@@ -21,17 +21,17 @@
 {"@context":"https://schema.org","@type":"WebSite","name":"火烧云","alternateName":"Sky","url":"https://sky.netcn.org/","description":"汇总六个数值模式与集合预报，给出今晚晚霞、朝霞、星空、月亮的观测概率。","inLanguage":"zh-CN"}
 </script>
 <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
-<link rel="stylesheet" href="assets/css/sky.css?v=9">
+<link rel="stylesheet" href="assets/css/sky.css?v=11">
 <link rel="stylesheet" href="/shell/netcn-shell.css?v=20261107c6">
 <link rel="stylesheet" href="/shell/netcn-ui.css?v=20261107c6">
 <script src="/shell/shell.js?v=20261107c6"></script>
 <script src="assets/vendor/leaflet/leaflet.js" defer></script>
-<link rel="modulepreload" href="assets/js/app.js?v=9">
-<link rel="modulepreload" href="assets/js/astro.js?v=9">
-<link rel="modulepreload" href="assets/js/sources.js?v=9">
-<link rel="modulepreload" href="assets/js/scoring.js?v=9">
-<link rel="modulepreload" href="assets/js/cities.js?v=9">
-<link rel="modulepreload" href="assets/js/live-map.js?v=9">
+<link rel="modulepreload" href="assets/js/app.js?v=11">
+<link rel="modulepreload" href="assets/js/astro.js?v=11">
+<link rel="modulepreload" href="assets/js/sources.js?v=11">
+<link rel="modulepreload" href="assets/js/scoring.js?v=11">
+<link rel="modulepreload" href="assets/js/cities.js?v=11">
+<link rel="modulepreload" href="assets/js/live-map.js?v=11">
 </head>
 <body>
 <nav class="nc-shell" aria-label="netcn 站点导航">
@@ -181,22 +181,42 @@
 
   <section class="sky-panel" aria-labelledby="cityIdxTitle">
     <div class="sky-panel-head">
-      <h2 id="cityIdxTitle">按城市看今晚</h2>
-      <span class="sky-hint"><a class="sky-link" href="/city/">全部 12 个城市</a></span>
+      <h2 id="cityIdxTitle" data-zh="按城市看今晚" data-en="Tonight, city by city">按城市看今晚</h2>
+      <span class="sky-hint"><a class="sky-link" href="/city/" data-zh="全部 32 个城市" data-en="All 32 cities">全部 32 个城市</a></span>
     </div>
-    <div class="sky-city-links">
-      <a href="/city/shanghai/">上海</a>
-      <a href="/city/beijing/">北京</a>
-      <a href="/city/guangzhou/">广州</a>
-      <a href="/city/shenzhen/">深圳</a>
-      <a href="/city/hangzhou/">杭州</a>
-      <a href="/city/chengdu/">成都</a>
-      <a href="/city/xian/">西安</a>
-      <a href="/city/kunming/">昆明</a>
-      <a href="/city/lhasa/">拉萨</a>
-      <a href="/city/dunhuang/">敦煌</a>
-      <a href="/city/qingdao/">青岛</a>
-      <a href="/city/xiamen/">厦门</a>
+    <div class="sky-city-links" id="cityLinks">
+      <a href="/city/shanghai/" data-zh="上海" data-en="Shanghai">上海</a>
+      <a href="/city/beijing/" data-zh="北京" data-en="Beijing">北京</a>
+      <a href="/city/guangzhou/" data-zh="广州" data-en="Guangzhou">广州</a>
+      <a href="/city/shenzhen/" data-zh="深圳" data-en="Shenzhen">深圳</a>
+      <a href="/city/hangzhou/" data-zh="杭州" data-en="Hangzhou">杭州</a>
+      <a href="/city/chengdu/" data-zh="成都" data-en="Chengdu">成都</a>
+      <a href="/city/xian/" data-zh="西安" data-en="Xi&#x27;an">西安</a>
+      <a href="/city/kunming/" data-zh="昆明" data-en="Kunming">昆明</a>
+      <a href="/city/lhasa/" data-zh="拉萨" data-en="Lhasa">拉萨</a>
+      <a href="/city/dunhuang/" data-zh="敦煌" data-en="Dunhuang">敦煌</a>
+      <a href="/city/qingdao/" data-zh="青岛" data-en="Qingdao">青岛</a>
+      <a href="/city/xiamen/" data-zh="厦门" data-en="Xiamen">厦门</a>
+      <a href="/city/nanjing/" data-zh="南京" data-en="Nanjing">南京</a>
+      <a href="/city/suzhou/" data-zh="苏州" data-en="Suzhou">苏州</a>
+      <a href="/city/chongqing/" data-zh="重庆" data-en="Chongqing">重庆</a>
+      <a href="/city/wuhan/" data-zh="武汉" data-en="Wuhan">武汉</a>
+      <a href="/city/tianjin/" data-zh="天津" data-en="Tianjin">天津</a>
+      <a href="/city/changsha/" data-zh="长沙" data-en="Changsha">长沙</a>
+      <a href="/city/zhengzhou/" data-zh="郑州" data-en="Zhengzhou">郑州</a>
+      <a href="/city/jinan/" data-zh="济南" data-en="Jinan">济南</a>
+      <a href="/city/shenyang/" data-zh="沈阳" data-en="Shenyang">沈阳</a>
+      <a href="/city/harbin/" data-zh="哈尔滨" data-en="Harbin">哈尔滨</a>
+      <a href="/city/dalian/" data-zh="大连" data-en="Dalian">大连</a>
+      <a href="/city/fuzhou/" data-zh="福州" data-en="Fuzhou">福州</a>
+      <a href="/city/nanning/" data-zh="南宁" data-en="Nanning">南宁</a>
+      <a href="/city/haikou/" data-zh="海口" data-en="Haikou">海口</a>
+      <a href="/city/guiyang/" data-zh="贵阳" data-en="Guiyang">贵阳</a>
+      <a href="/city/lanzhou/" data-zh="兰州" data-en="Lanzhou">兰州</a>
+      <a href="/city/urumqi/" data-zh="乌鲁木齐" data-en="Urumqi">乌鲁木齐</a>
+      <a href="/city/xining/" data-zh="西宁" data-en="Xining">西宁</a>
+      <a href="/city/sanya/" data-zh="三亚" data-en="Sanya">三亚</a>
+      <a href="/city/shangri-la/" data-zh="香格里拉" data-en="Shangri-La">香格里拉</a>
     </div>
   </section>
 
@@ -228,6 +248,6 @@
   <p class="sky-dialog-note">光污染为城市级估算；郊区、山区实际条件通常更好。</p>
 </dialog>
 
-<script type="module" src="assets/js/app.js?v=9"></script>
+<script type="module" src="assets/js/app.js?v=11"></script>
 </body>
 </html>

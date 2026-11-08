@@ -1,5 +1,5 @@
 /* ============================================================
-   城市落地页：读取该城市今晚的实时评分
+   城市落地页：读取该城市今晚的实时评分，并跟随家族中英切换
    ============================================================ */
 import { CITIES } from "./cities.js";
 import { loadSky } from "./sources.js";
@@ -8,48 +8,108 @@ import { fmtHM, phaseName } from "./astro.js";
 
 const $ = (s) => document.querySelector(s);
 const city = CITIES.find((c) => c.id === document.body.dataset.city);
-const L = {
-  confHigh: "高", confMid: "中", confLow: "低",
-  conf: (c) => c === "high" ? "高" : c === "mid" ? "中" : "低"
+
+const I18N = {
+  zh: {
+    conf: (c) => c === "high" ? "高" : c === "mid" ? "中" : "低",
+    glowSub: (v, c) => `指数 ${v} · 置信度${c}`,
+    starSub: (cloud, moon) => `云量 ${cloud}% · 月光 ${moon}%`,
+    moonSub: (p, visible) => `${p} · ${visible ? "在地平线上" : "整夜在地平线下"}`,
+    verdict: (sunset, glow, dawn, star, moon, why) =>
+      `日落 ${sunset}，火烧云概率 ${glow}%；朝霞 ${dawn}%，星空 ${star} 分，月亮 ${moon} 分。${why}`,
+    reasons: {
+      low: "低云压得很低，西边地平线大概率被挡住。",
+      noHigh: "高云太少，天上没有可以烧的云。",
+      good: "高云比例正好，值得提前找好西向视野。",
+      rain: "日落前后有降水，云层容易被压平。",
+      meh: "云和光都差一点，属于可看可不看的一晚。"
+    },
+    title: ["今晚值得出门", "今晚可以赌一把", "今晚更适合看星", "今晚希望不大"],
+    date: (d) => `${d.getMonth() + 1} 月 ${d.getDate()} 日 · 周${"日一二三四五六"[d.getDay()]}`,
+    updated: (t) => `更新于 ${t}`,
+    fail: "数据读取失败，请稍后刷新；预报本身仍可参考下方的观测建议。",
+    loading: "正在读取今晚的观测条件…",
+    day: (k) => k === 0 ? "今晚" : k === 1 ? "明晚" : "后天",
+    sunset: "日落", glow: "晚霞", star: "星空",
+    starUnit: " 分", pct: "%",
+    searchPh: "搜城市，回车跳转"
+  },
+  en: {
+    conf: (c) => c === "high" ? "high" : c === "mid" ? "medium" : "low",
+    glowSub: (v, c) => `Index ${v} · ${c} confidence`,
+    starSub: (cloud, moon) => `Cloud ${cloud}% · moonlight ${moon}%`,
+    moonSub: (p, visible) => `${p} · ${visible ? "above the horizon" : "below the horizon all night"}`,
+    verdict: (sunset, glow, dawn, star, moon, why) =>
+      `Sunset ${sunset}, ${glow}% chance of a fire-cloud glow; dawn glow ${dawn}%, star score ${star}, Moon score ${moon}. ${why}`,
+    reasons: {
+      low: "Low cloud is sitting too thick — the western horizon will likely be blocked.",
+      noHigh: "Not enough high cloud; there is nothing for the sun to light up.",
+      good: "The high-cloud fraction is just right — find a western view early.",
+      rain: "Rain around sunset tends to flatten the cloud deck.",
+      meh: "Cloud and light are both slightly off — an optional night out."
+    },
+    title: ["Worth going out tonight", "Worth a gamble tonight", "Better for stars tonight", "Not much of a show tonight"],
+    date: (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", weekday: "short" }),
+    updated: (t) => `Updated ${t}`,
+    fail: "Could not load live data — please refresh later. The observing advice below is still useful.",
+    loading: "Loading tonight's conditions…",
+    day: (k) => k === 0 ? "Tonight" : k === 1 ? "Tomorrow" : "Day after",
+    sunset: "Sunset", glow: "Glow", star: "Stars",
+    starUnit: " pts", pct: "%",
+    searchPh: "Search a city, press Enter"
+  }
 };
 
-function dayLabel(d) {
-  const w = "日一二三四五六"[d.getDay()];
-  return `${d.getMonth() + 1} 月 ${d.getDate()} 日 · 周${w}`;
+let LANG = document.documentElement.lang === "en" ? "en" : "zh";
+const L = () => I18N[LANG];
+let STATE = null;
+
+/* 静态文案：data-zh / data-en；title 与 meta 也一并切换 */
+function applyStatic() {
+  const key = "data-" + LANG;
+  document.querySelectorAll("[data-zh]").forEach((el) => {
+    const v = el.getAttribute(key);
+    if (v == null) return;
+    if (el.tagName === "META") el.setAttribute("content", v);
+    else el.textContent = v;
+  });
+  const input = $("#citySearch");
+  if (input) {
+    input.placeholder = L().searchPh;
+    input.setAttribute("aria-label", LANG === "en" ? "Search city" : "搜索城市");
+  }
 }
 
 function reason(e) {
   const c = e.cloud || {};
-  if ((c.low || 0) > 60) return "低云压得很低，西边地平线大概率被挡住。";
-  if ((c.high || 0) < 10) return "高云太少，天上没有可以烧的云。";
-  if (e.prob >= 60) return "高云比例正好，值得提前找好西向视野。";
-  if (e.ctx && e.ctx.precip > 60) return "日落前后有降水，云层容易被压平。";
-  return "云和光都差一点，属于可看可不看的一晚。";
+  const R = L().reasons;
+  if ((c.low || 0) > 60) return R.low;
+  if ((c.high || 0) < 10) return R.noHigh;
+  if (e.prob >= 60) return R.good;
+  if (e.ctx && e.ctx.precip > 60) return R.rain;
+  return R.meh;
 }
 
-function setCard(id, value, unit, sub, ratio) {
-  const v = $(`#c${id}`);
-  const s = $(`#s${id}`);
-  const b = $(`#b${id}`);
+function setCard(id, value, sub, ratio) {
+  const v = $(`#c${id}`), s = $(`#s${id}`), b = $(`#b${id}`);
   if (v) v.textContent = value;
   if (s) s.textContent = sub;
   if (b) b.style.width = Math.max(2, Math.min(100, ratio || 0)) + "%";
-  const card = v ? v.closest(".sky-card") : null;
-  if (card) card.dataset.unit = unit || "";
 }
 
-function cards(ev) {
-  setCard("Glow", Math.round(ev.evening.prob), "%",
-    `指数 ${Math.round(ev.evening.score)} · 置信度${L.conf(ev.evening.confidence)}`, ev.evening.prob);
-  setCard("Dawn", Math.round(ev.morning.prob), "%",
-    `指数 ${Math.round(ev.morning.score)} · 置信度${L.conf(ev.morning.confidence)}`, ev.morning.prob);
-  setCard("Star", Math.round(ev.star.score), "",
-    `云量 ${Math.round(ev.star.cloud || 0)}% · 月光 ${Math.round((ev.star.moon.illum || 0) * 100)}%`, ev.star.score);
-  setCard("Moon", Math.round(ev.moon.score), "",
-    `${phaseName(ev.moon.phase).zh} · ${ev.moon.visible ? "在地平线上" : "整夜在地平线下"}`, ev.moon.score);
+function renderCards(ev) {
+  const t = L();
+  setCard("Glow", Math.round(ev.evening.prob),
+    t.glowSub(Math.round(ev.evening.score), t.conf(ev.evening.confidence)), ev.evening.prob);
+  setCard("Dawn", Math.round(ev.morning.prob),
+    t.glowSub(Math.round(ev.morning.score), t.conf(ev.morning.confidence)), ev.morning.prob);
+  setCard("Star", Math.round(ev.star.score),
+    t.starSub(Math.round(ev.star.cloud || 0), Math.round((ev.star.moon.illum || 0) * 100)), ev.star.score);
+  setCard("Moon", Math.round(ev.moon.score),
+    t.moonSub(phaseName(ev.moon.phase)[LANG === "en" ? "en" : "zh"], ev.moon.visible), ev.moon.score);
 }
 
-function strip(ev, data) {
+function renderStrip(ev, data) {
   const sun = ev.sun;
   if ($("#cSunset")) $("#cSunset").textContent = fmtHM(sun.sunset);
   if ($("#cSunrise")) $("#cSunrise").textContent = fmtHM(sun.sunrise);
@@ -58,61 +118,73 @@ function strip(ev, data) {
   if ($("#cCloud")) $("#cCloud").textContent = cur ? Math.round(cur.cloud_cover) + "%" : "—";
 }
 
-function days(data) {
+function renderDays(data) {
   const box = $("#cDays");
-  if (!box) return;
+  if (!box || !city) return;
+  const t = L();
   const now = new Date();
-  const rows = [0, 1, 2].map((i) => {
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  box.innerHTML = [0, 1, 2].map((i) => {
     const d = new Date(now.getTime() + i * 86400000);
     const ev = evaluate(data, city, d);
-    return { d, ev };
-  });
-  box.innerHTML = rows.map(({ d, ev }) => {
-    const label = i0(d, now);
+    const k = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - base) / 86400000);
     return `<div class="city-day">
-      <b>${label}</b>
-      <span>日落 ${fmtHM(ev.sun.sunset)}</span>
-      <em>晚霞 ${Math.round(ev.evening.prob)}%</em>
-      <span class="city-day-val">星空 ${Math.round(ev.star.score)} 分</span>
+      <b>${t.day(k)}</b>
+      <span>${t.sunset} ${fmtHM(ev.sun.sunset)}</span>
+      <em>${t.glow} ${Math.round(ev.evening.prob)}%</em>
+      <span class="city-day-val">${t.star} ${Math.round(ev.star.score)}${t.starUnit}</span>
     </div>`;
   }).join("");
-  function i0(d, n) {
-    const a = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
-    const b = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    const k = Math.round((b - a) / 86400000);
-    return k === 0 ? "今晚" : k === 1 ? "明晚" : "后天";
-  }
 }
+
+function renderVerdict(ev) {
+  const t = L();
+  const box = $("#verdictText");
+  if (box) box.textContent = t.verdict(
+    fmtHM(ev.sun.sunset), Math.round(ev.evening.prob), Math.round(ev.morning.prob),
+    Math.round(ev.star.score), Math.round(ev.moon.score), reason(ev.evening));
+  const dl = $("#dateLabel");
+  if (dl) dl.textContent = t.date(new Date());
+  const ut = $("#updateTime");
+  if (ut) ut.textContent = t.updated(fmtHM(new Date()));
+}
+
+function renderAll() {
+  if (!STATE) return;
+  renderVerdict(STATE.ev);
+  renderCards(STATE.ev);
+  renderStrip(STATE.ev, STATE.data);
+  renderDays(STATE.data);
+}
+
+function switchLang(l) {
+  LANG = l === "en" ? "en" : "zh";
+  applyStatic();
+  renderAll();
+}
+
+document.addEventListener("ncn:lang", (e) => switchLang(e.detail && e.detail.lang));
+
+applyStatic();
+const vt = $("#verdictText");
+if (vt && !STATE) vt.textContent = L().loading;
 
 async function run() {
   try {
     const data = await loadSky(city.lat, city.lon);
     const ev = evaluate(data, city, new Date());
-    const title = ev.evening.prob >= 65 ? "今晚值得出门"
-      : ev.evening.prob >= 40 ? "今晚可以赌一把"
-        : ev.star.score >= 55 ? "今晚更适合看星"
-          : "今晚希望不大";
-    if ($("#verdictTag")) $("#verdictTag").textContent = title;
-    if ($("#verdictText")) {
-      $("#verdictText").textContent =
-        `日落 ${fmtHM(ev.sun.sunset)}，火烧云概率 ${Math.round(ev.evening.prob)}%；`
-        + `朝霞 ${Math.round(ev.morning.prob)}%，星空 ${Math.round(ev.star.score)} 分，月亮 ${Math.round(ev.moon.score)} 分。`
-        + reason(ev.evening);
-    }
-    if ($("#dateLabel")) $("#dateLabel").textContent = dayLabel(new Date());
-    if ($("#updateTime")) $("#updateTime").textContent = `更新于 ${fmtHM(new Date())}`;
-    cards(ev);
-    strip(ev, data);
-    days(data);
+    STATE = { data, ev };
+    renderAll();
     window.__cityReady = true;
   } catch (e) {
     console.error(e);
-    if ($("#verdictText")) $("#verdictText").textContent = "数据读取失败，请稍后刷新；预报本身仍可参考下方的观测建议。";
+    const box = $("#verdictText");
+    if (box) box.textContent = L().fail;
     window.__cityReady = "error";
   }
 }
 
-const search = document.getElementById("citySearch");
+const search = $("#citySearch");
 if (search) {
   search.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
@@ -123,4 +195,5 @@ if (search) {
   });
 }
 
+window.__cityLang = () => LANG;
 if (city) run();

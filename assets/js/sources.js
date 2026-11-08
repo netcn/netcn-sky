@@ -353,3 +353,150 @@ export function interpolator(times, values) {
     return v0 + (v1 - v0) * (t - t0) / (t1 - t0);
   };
 }
+
+/* ---------- ⑨ 官方台风预报路径（GDACS / JTWC-JMA 汇总） ----------
+   GDACS 的 getgeometry 把一条路径拆成多个 2 点 LineString，以及一组
+   PointRadii 风圈（Point_Polygon_Point_N，N 按时间递增）。风圈属性里
+   polygonlabel / key 给出 UTC 时刻；Poly_Cones 是官方误差锥。
+   这里把风圈中心按时间串成历史段 + 预报段，供地图直接绘制。 */
+const GDACS_LIST = "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=TC&alertlevel=Green;Orange;Red";
+const GDACS_GEO = "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry";
+const GDACS_KEY = "sky_official_tracks_v1";
+const GDACS_TTL = 30 * 60 * 1000;
+
+/* key = "MMDDHHmm"（UTC），补上年份；跨年时按当前月份修正 */
+function gdacsTime(key, label, now) {
+  let mo, dd, hh, mi;
+  if (/^\d{8}$/.test(key || "")) {
+    mo = +key.slice(0, 2); dd = +key.slice(2, 4); hh = +key.slice(4, 6); mi = +key.slice(6, 8);
+  } else {
+    const m = /(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})/.exec(label || "");
+    if (!m) return null;
+    dd = +m[1]; mo = +m[2]; hh = +m[3]; mi = +m[4];
+  }
+  let year = now.getUTCFullYear();
+  // 若解析出的月份比当前晚 6 个月以上，视为去年（跨年事件）
+  if (mo > now.getUTCMonth() + 1 + 6) year -= 1;
+  const t = Date.UTC(year, mo - 1, dd, hh, mi);
+  return Number.isFinite(t) ? t : null;
+}
+
+/* 递归找出 GeoJSON coordinates 里第一个「点的数组」，兼容 Polygon / MultiPolygon */
+function firstRing(c) {
+  if (!Array.isArray(c)) return null;
+  if (c.length && Array.isArray(c[0]) && c[0].length >= 2 && Number.isFinite(c[0][0]) && Number.isFinite(c[0][1])) return c;
+  for (const x of c) { const r = firstRing(x); if (r) return r; }
+  return null;
+}
+
+function ringCenter(geom) {
+  const c = geom && geom.coordinates;
+  if (!Array.isArray(c)) return null;
+  const ring = firstRing(c) || c;
+  const pts = ring.filter((p) => Array.isArray(p) && p.length >= 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+  if (!pts.length) return null;
+  let lon = 0, lat = 0;
+  for (const p of pts) { lon += p[0]; lat += p[1]; }
+  return { lon: lon / pts.length, lat: lat / pts.length };
+}
+
+function parseOfficialEvent(ev, now) {
+  const feats = ev.features || [];
+  const pts = [];
+  let cone = null, eventName = "", url = "", alert = "", modified = null;
+  for (const f of feats) {
+    const p = f.properties || {};
+    const g = f.geometry || {};
+    if (!eventName && p.eventname) eventName = p.eventname;
+    if (!url && p.url && p.url.report) url = p.url.report;
+    if (!alert && p.alertlevel) alert = p.alertlevel;
+    if (!modified && p.datemodified) modified = p.datemodified;
+    const cls = String(p.Class || "");
+    if (cls.indexOf("Point_Polygon_Point_") === 0) {
+      const c = ringCenter(g);
+      const t = gdacsTime(p.key, p.polygonlabel, now);
+      if (c && t != null) pts.push({ lat: c.lat, lon: c.lon, t, label: p.polygonlabel || "", idx: +cls.split("_").pop() });
+    } else if (cls === "Poly_Cones") {
+      const ring = firstRing(g.coordinates);
+      if (ring && ring.length >= 3) {
+        // 抽稀到 <= 90 点，避免 SVG 过重
+        const step = Math.max(1, Math.floor(ring.length / 90));
+        cone = ring.filter((_, i) => i % step === 0).map((x) => [x[1], x[0]]);
+      }
+    }
+  }
+  pts.sort((a, b) => a.t - b.t);
+  if (pts.length < 2) return null;
+  const past = pts.filter((p) => p.t <= now.getTime());
+  const future = pts.filter((p) => p.t > now.getTime());
+  const last = past[past.length - 1] || pts[0];
+  return {
+    name: eventName || "TC",
+    alert,
+    url: url || "https://www.gdacs.org/",
+    modified,
+    points: pts,
+    past,
+    future,
+    cone,
+    lat: last.lat,
+    lon: last.lon,
+    forecastHours: future.length ? Math.round((future[future.length - 1].t - now.getTime()) / 3600000) : 0
+  };
+}
+
+export async function loadOfficialTracks(opts = {}) {
+  const refLat = Number.isFinite(opts.lat) ? opts.lat : 31.2304;
+  const refLon = Number.isFinite(opts.lon) ? opts.lon : 121.4737;
+  if (!opts.force) {
+    try {
+      const raw = localStorage.getItem(GDACS_KEY);
+      if (raw) {
+        const c = JSON.parse(raw);
+        if (c && c.t && Date.now() - c.t < GDACS_TTL && c.d) return { ...c.d, cached: true };
+      }
+    } catch (e) {}
+  }
+  const list = await getJSON(GDACS_LIST, 25000);
+  const now = new Date();
+  const current = (list.features || []).filter((f) => String(f.properties.iscurrent).toLowerCase() === "true");
+  // 按离当前城市的距离取最近的 4 个（覆盖西北太平洋气旋），避免一次拉太多几何数据
+  const near = current.map((f) => {
+    const c = (f.geometry && f.geometry.coordinates) || [0, 0];
+    const d = Math.hypot(c[1] - refLat, (c[0] - refLon) * Math.cos(refLat * Math.PI / 180));
+    return { f, d };
+  }).sort((a, b) => a.d - b.d).slice(0, 4);
+  const chosen = near.map(({ f }) => ({
+    id: f.properties.eventid,
+    episode: f.properties.episodeid,
+    name: f.properties.eventname
+  }));
+  const settled = await Promise.allSettled(chosen.map((c) =>
+    getJSON(`${GDACS_GEO}?eventtype=TC&eventid=${c.id}&episodeid=${c.episode}`, 30000)
+  ));
+  const tracks = [];
+  settled.forEach((r, i) => {
+    if (r.status !== "fulfilled") return;
+    const t = parseOfficialEvent(r.value, now);
+    if (t) { t.id = chosen[i].id; t.eventname = chosen[i].name; tracks.push(t); }
+  });
+  const data = { list: tracks, updated: Date.now() };
+  try { localStorage.setItem(GDACS_KEY, JSON.stringify({ t: Date.now(), d: data })); } catch (e) {}
+  return { ...data, cached: false };
+}
+
+/* 把官方路径匹配到 EONET 气旋：先按名称主干，再按当前位置距离 */
+export function matchOfficialTrack(storm, tracks) {
+  if (!tracks || !tracks.length) return null;
+  const norm = (s) => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const s = norm(storm.title || "");
+  let best = null, bestD = Infinity;
+  for (const t of tracks) {
+    const n = norm(t.name || "").replace(/\d{2}$/, "");
+    const core = n.length >= 4 ? n.slice(0, Math.min(n.length, 8)) : "";
+    if (core && s.indexOf(core) >= 0) return t;
+    const km = Math.hypot(storm.lat - t.lat, (storm.lon - t.lon) * Math.cos(storm.lat * Math.PI / 180)) * 111;
+    if (km < bestD) { bestD = km; best = t; }
+  }
+  return bestD <= 350 ? best : null;
+}

@@ -2,7 +2,7 @@
    火烧云 · 页面逻辑
    数据 → 评分 → 渲染；城市默认上海，可切换/定位。
    ============================================================ */
-import { loadSky, loadGrid, loadStorms, reverseName, interpolator } from "./sources.js";
+import { loadSky, loadGrid, loadStorms, loadOfficialTracks, matchOfficialTrack, reverseName, interpolator } from "./sources.js";
 import { evaluate, glowFactors, scoreGrid } from "./scoring.js";
 import { CITIES, DEFAULT_CITY, cityById, nearestCity, cityLabel } from "./cities.js";
 import { fmtHM, phaseName } from "./astro.js";
@@ -98,7 +98,10 @@ Object.assign(T.zh, {
   stormsNone: "当前没有活跃的台风或热带气旋。",
   stormDist: (km) => `距你约 ${km.toLocaleString()} 公里`,
   stormView: "在地图上查看",
-  stormSource: "来源：NASA EONET。实线是历史路径，虚线是按最近移动线性外推 24 小时，不是官方预报。",
+  stormSource: "来源：NASA EONET 观测点 + GDACS 汇总的 JTWC/JMA 官方预报。实线是历史路径，蓝紫色虚线为官方预报，橙色虚线为线性外推（仅在没有官方预报时显示）。",
+  stormForecast: (h) => `官方预报 · 未来 ${h} 小时`,
+  stormExtrapolate: "官方预报暂缺 · 按最近移动线性外推 24 小时",
+  stormOfficialSource: "GDACS / JTWC 官方报告",
   stormMove: (d, v) => `向${d}移动 · 约 ${v} 公里/小时`,
   geoTitle: "看你自己所在的位置",
   geoDesc: "允许定位后，页面会换成你附近的观测条件；不授权就继续看上海。",
@@ -123,7 +126,10 @@ Object.assign(T.en, {
   stormsNone: "No active typhoons or tropical cyclones right now.",
   stormDist: (km) => `about ${km.toLocaleString()} km from you`,
   stormView: "Show on map",
-  stormSource: "Source: NASA EONET. Solid line is the observed track; dashed line is a 24 h linear extrapolation, not an official forecast.",
+  stormSource: "Source: NASA EONET fixes + GDACS (JTWC/JMA) official forecast. Solid = observed track; violet dashed = official forecast; orange dashed = linear extrapolation shown only when no official forecast exists.",
+  stormForecast: (h) => `Official forecast · next ${h} h`,
+  stormExtrapolate: "No official forecast · 24 h linear extrapolation",
+  stormOfficialSource: "GDACS / JTWC report",
   stormMove: (d, v) => `moving ${d} · about ${v} km/h`,
   geoTitle: "See conditions where you are",
   geoDesc: "Allow location and the page switches to your neighbourhood; otherwise it stays on Shanghai.",
@@ -149,7 +155,7 @@ const METEORS = [
 const S = {
   city: null, data: null, days: [], loading: true, error: null,
   sel: "evening", refreshing: false,
-  grid: null, gridScores: null, storms: null,
+  grid: null, gridScores: null, storms: null, officialTracks: null,
   mapCenter: null, mapError: false, extrasLoading: false
 };
 
@@ -211,7 +217,7 @@ async function loadData(force = false) {
   S.loading = !S.data;
   S.refreshing = !!S.data;
   S.error = null;
-  S.grid = null; S.gridScores = null; S.storms = null; S.mapCenter = null; S.mapError = false;
+  S.grid = null; S.gridScores = null; S.storms = null; S.officialTracks = null; S.mapCenter = null; S.mapError = false;
   render();
   try {
     const data = await loadSky(S.city.lat, S.city.lon, { force });
@@ -240,9 +246,10 @@ async function loadExtras(force = false) {
   if (!ev) return;
   S.extrasLoading = true;
   renderMapSection();
-  const [g, s] = await Promise.allSettled([
+  const [g, s, o] = await Promise.allSettled([
     loadGrid(S.city.lat, S.city.lon, { force }),
-    loadStorms({ force })
+    loadStorms({ force }),
+    loadOfficialTracks({ force, lat: S.city.lat, lon: S.city.lon })
   ]);
   if (g.status === "fulfilled") {
     S.grid = g.value;
@@ -252,7 +259,30 @@ async function loadExtras(force = false) {
     console.warn("grid", g.reason);
     S.mapError = true;
   }
-  S.storms = s.status === "fulfilled" ? s.value.list : [];
+  const tracks = o.status === "fulfilled" ? (o.value.list || []) : [];
+  S.officialTracks = tracks;
+  const base = s.status === "fulfilled" ? s.value.list.slice() : [];
+  const used = new Set();
+  for (const st of base) {
+    const m = matchOfficialTrack(st, tracks);
+    if (m) { st.official = m; used.add(m.id); }
+  }
+  // EONET 未收录、但 GDACS 有官方预报的现役气旋也补进列表
+  for (const t of tracks) {
+    if (used.has(t.id) || !t.future || t.future.length < 2) continue;
+    const last = t.past[t.past.length - 1] || t.points[t.points.length - 1];
+    base.push({
+      id: "gdacs-" + t.id,
+      title: (t.eventname || t.name || "TC").replace(/-\d{2}$/, ""),
+      lat: last.lat, lon: last.lon,
+      date: new Date(last.t).toISOString(),
+      track: t.past.map((p) => ({ lat: p.lat, lon: p.lon, date: new Date(p.t).toISOString() })),
+      official: t,
+      link: t.url,
+      gdacsOnly: true
+    });
+  }
+  S.storms = base;
   S.extrasLoading = false;
   window.__skyExtrasReady = true;
   renderMapSection();
@@ -729,17 +759,23 @@ function renderStorms() {
     const d = distKm(S.city.lat, S.city.lon, s.lat, s.lon);
     const date = (s.date || "").slice(5, 10).replace("-", "/");
     const mo = stormMotion(s);
+    const off = s.official;
+    const hasFc = off && off.future && off.future.length >= 2;
+    const badge = hasFc
+      ? `<div class="sky-storm-fc"><span class="sky-fc-tag">${en ? "OFFICIAL" : "官方预报"}</span>${t().stormForecast(off.forecastHours)}</div>`
+      : `<div class="sky-storm-fc muted">${t().stormExtrapolate}</div>`;
     return `<article class="sky-storm">
-      <div class="sky-storm-name">🌀 ${s.title}</div>
+      <div class="sky-storm-name">🌀 ${s.title}${s.gdacsOnly ? `<span class="sky-fc-mini">${t().stormOfficialSource}</span>` : ""}</div>
       <div class="sky-storm-meta">${en ? "lat" : "北纬"} ${Math.abs(s.lat).toFixed(1)}° · ${en ? "lon" : "东经"} ${Math.abs(s.lon).toFixed(1)}° · ${t().stormDist(Math.round(d))}${date ? ` · ${date}` : ""}</div>
       ${mo ? `<div class="sky-storm-move">${t().stormMove(en ? mo.en : mo.zh, mo.kmh)}</div>` : ""}
+      ${badge}
       <button class="sky-link" type="button" data-storm="${s.id}">${t().stormView}</button>
     </article>`;
   }).join("")}</div><p class="sky-storm-src">${t().stormSource}</p>`;
   box.querySelectorAll("[data-storm]").forEach((b) => b.onclick = () => {
     const s = S.storms.find((x) => x.id === b.dataset.storm);
     if (!s) return;
-    S.mapCenter = { lat: s.lat, lon: s.lon, track: s.track || [] };
+    S.mapCenter = { lat: s.lat, lon: s.lon, track: s.track || [], official: s.official || null };
     renderMapSection();
     $("#skyMap").scrollIntoView({ behavior: "smooth", block: "center" });
   });
@@ -879,6 +915,12 @@ function renderStaticLabels() {
   set("geoSkip", t().geoSkip);
   const q = $("#citySearch");
   if (q) q.placeholder = t().cloudPh;
+  // 首页城市入口与标题：data-zh / data-en 静态双语
+  const key = lang() === "en" ? "data-en" : "data-zh";
+  document.querySelectorAll("[data-zh][data-en]").forEach((el) => {
+    const v = el.getAttribute(key);
+    if (v != null && el.tagName !== "META") el.textContent = v;
+  });
 }
 
 function render() {
