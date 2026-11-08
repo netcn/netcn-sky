@@ -294,37 +294,134 @@ html.dark [data-nc="sky"], [data-theme="dark"] [data-nc="sky"] {
 .sky-geoprompt-act button:last-child { background: transparent; color: var(--ui-ac); }
 .sky-geoprompt-act button:hover { filter: brightness(1.06); }
 
-/* ---------- 晚霞地图 ---------- */
-.sky-map { position: relative; }
-.sky-map-canvas { position: relative; border: 1px solid var(--ui-line); border-radius: 12px; overflow: hidden; background: var(--map-sea); }
-.sky-map-canvas svg { display: block; width: 100%; height: auto; }
-.sky-map-sea { fill: var(--map-sea); }
-.sky-map-grid line { stroke: var(--map-grid); stroke-width: 1; stroke-dasharray: 3 6; opacity: .7; }
-.sky-map-cn { fill: var(--map-cn); stroke: var(--map-line); stroke-width: 1; }
-.sky-map-nb { fill: var(--map-nb); stroke: var(--map-line); stroke-width: .8; }
-.sky-map-cell { fill-opacity: .55; stroke: none; cursor: pointer; transition: fill-opacity .15s; }
-.sky-map-cell:hover { fill-opacity: .88; }
-.sky-map-city circle { fill: var(--ui-ink3); }
-.sky-map-city text { fill: var(--ui-ink2); font-size: 11px; font-family: var(--font-sans); paint-order: stroke; stroke: var(--map-halo); stroke-width: 3px; stroke-linejoin: round; }
-.sky-map-storm text { font-size: 16px; }
-.sky-map-dot { fill: var(--ui-ac); stroke: var(--ui-card); stroke-width: 3; }
-.sky-map-me-label { fill: var(--ui-ac); font-size: 12px; font-weight: 800; font-family: var(--font-sans); paint-order: stroke; stroke: var(--map-halo); stroke-width: 3px; stroke-linejoin: round; }
-.sky-map-pulse { fill: var(--ui-ac); opacity: .2; animation: skyPulse 2.6s ease-out infinite; }
-@keyframes skyPulse { 0% { r: 7; opacity: .34; } 70% { r: 22; opacity: 0; } 100% { opacity: 0; } }
-.sky-map-scale line { stroke: var(--ui-ink3); stroke-width: 2; }
-.sky-map-scale text { fill: var(--ui-ink3); font-size: 10px; font-family: var(--font-sans); }
-.sky-map-zoom { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; }
-.sky-map-zoom button {
-  width: 30px; height: 30px; border-radius: 8px; cursor: pointer; line-height: 1;
-  border: 1px solid var(--ui-line); background: var(--ui-card); color: var(--ui-ink);
-  font-family: inherit; font-size: 16px; font-weight: 700;
+/* ---------- 晚霞地图（Leaflet 综合图层） ---------- */
+.sky-mapbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
 }
-.sky-map-zoom button:hover { border-color: var(--ui-ac); color: var(--ui-ac); }
-.sky-map-legend { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 10px; font-size: 11px; color: var(--ui-ink3); }
-.sky-map-legend i { width: 18px; height: 8px; border-radius: 2px; display: inline-block; }
-.sky-map-legend em { font-style: normal; margin-right: 6px; }
-.sky-map-cap { margin: 8px 0 0; font-size: 12px; color: var(--ui-ink2); line-height: 1.65; }
-.sky-map-credit { margin: 4px 0 0; font-size: 10.5px; color: var(--ui-ink3); }
+.sky-mapbar .sky-seg {
+  display: inline-flex; gap: 2px; padding: 3px;
+  border-radius: 9px; background: var(--ui-line-soft, #eef0f4);
+}
+.sky-mapbar .sky-seg button {
+  padding: 5px 11px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--ui-ink2);
+  font: inherit; font-size: 11.5px; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.sky-mapbar .sky-seg button[aria-pressed="true"] {
+  background: var(--ui-card); color: var(--ui-ink);
+  box-shadow: 0 1px 3px rgba(20, 24, 33, .12);
+}
+html.dark .sky-mapbar .sky-seg { background: #10141c; }
+html.dark .sky-mapbar .sky-seg button[aria-pressed="true"] { background: #242c3a; }
+.sky-layers { display: flex; align-items: center; gap: 14px; }
+.sky-layers label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--ui-ink2); cursor: pointer;
+}
+.sky-layers input { accent-color: var(--ui-ac); width: 14px; height: 14px; margin: 0; }
+
+.lm-map {
+  position: relative;
+  height: clamp(320px, 42vw, 430px);
+  border: 1px solid var(--ui-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0b1020;
+}
+.sky-map-src { margin: 7px 0 0; font-size: 10.5px; color: var(--ui-ink3); }
+
+.lm-legend {
+  position: absolute; left: 10px; top: 10px; z-index: 500;
+  padding: 7px 9px 8px; border-radius: 9px;
+  background: rgba(12, 17, 28, .76);
+  color: #fff; font-size: 10.5px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+.lm-legend-title {
+  display: block; margin-bottom: 4px;
+  color: rgba(255, 255, 255, .66); letter-spacing: .05em;
+}
+.lm-sw { display: flex; gap: 1px; }
+.lm-sw i { display: block; width: 26px; height: 7px; border-radius: 2px; }
+.lm-sw i:first-child { border-radius: 3px 2px 2px 3px; }
+.lm-sw i:last-child { border-radius: 2px 3px 3px 2px; }
+.lm-scale {
+  display: flex; justify-content: space-between; margin-top: 3px;
+  color: rgba(255, 255, 255, .6); font-variant-numeric: tabular-nums;
+}
+
+.lm-radar {
+  position: absolute; left: 10px; bottom: 10px; z-index: 500;
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 10px 5px 5px; border-radius: 999px;
+  background: rgba(12, 17, 28, .76); color: #fff;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.lm-radar[hidden] { display: none; }
+.lm-radar button {
+  width: 24px; height: 24px; border: 0; border-radius: 50%;
+  background: var(--ui-ac); color: #fff; font-size: 9px;
+  cursor: pointer; display: grid; place-items: center; padding-left: 1px;
+}
+.lm-radar button.playing { padding-left: 0; }
+.lm-radar span { font-size: 11px; font-variant-numeric: tabular-nums; }
+
+.lm-stormchip {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  z-index: 520; padding: 7px 12px;
+  border: 1px solid rgba(255, 190, 120, .45); border-radius: 999px;
+  background: rgba(36, 20, 12, .84); color: #ffd9a8;
+  font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  white-space: nowrap;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.lm-stormchip[hidden] { display: none; }
+.lm-stormchip:hover { background: rgba(52, 28, 14, .92); }
+
+.lm-city {
+  padding: 1px 5px !important; border: 0 !important; border-radius: 4px !important;
+  background: rgba(10, 14, 24, .62) !important; color: #fff !important;
+  font-size: 10px !important; font-weight: 600; box-shadow: none !important;
+  white-space: nowrap;
+}
+.lm-city::before { display: none !important; }
+.lm-city em { font-style: normal; margin-left: 4px; opacity: .75; }
+.lm-city.me { background: rgba(209, 67, 42, .88) !important; }
+.lm-storm {
+  padding: 2px 6px !important; border: 1px solid rgba(255, 190, 120, .5) !important;
+  border-radius: 5px !important; background: rgba(40, 18, 10, .82) !important;
+  color: #ffd9a8 !important; font-size: 10px !important; box-shadow: none !important;
+  white-space: nowrap;
+}
+.lm-storm::before { display: none !important; }
+
+.lm-empty {
+  position: absolute; inset: 0; z-index: 600;
+  display: grid; place-items: center; padding: 20px;
+  background: rgba(10, 14, 24, .55); color: #fff;
+  font-size: 12.5px; text-align: center;
+}
+
+/* Leaflet 局部覆盖 */
+.leaflet-container { font: inherit; background: #0b1020; }
+.leaflet-control-attribution {
+  font-size: 10px !important; background: rgba(255, 255, 255, .8) !important;
+  color: #4a5262 !important; padding: 2px 6px !important;
+}
+.leaflet-control-attribution a { color: #2f3a4d !important; }
+.leaflet-control-zoom { border: 0 !important; box-shadow: 0 3px 12px rgba(0, 0, 0, .22) !important; }
+.leaflet-control-zoom a {
+  background: rgba(255, 255, 255, .92) !important; color: #1f2733 !important;
+  border-color: rgba(0, 0, 0, .08) !important;
+}
+html.dark .leaflet-control-zoom a { background: rgba(23, 28, 37, .92) !important; color: #e6eaf2 !important; }
+html.dark .leaflet-control-attribution { background: rgba(16, 20, 28, .82) !important; color: #9aa5b7 !important; }
+html.dark .leaflet-control-attribution a { color: #c8d2e2 !important; }
+
+/* 地图空态 */
 .sky-map-loading {
   display: grid; place-items: center; min-height: 300px; padding: 24px;
   border: 1px dashed var(--ui-line); border-radius: 12px;
@@ -375,6 +472,12 @@ html.dark [data-nc="sky"], [data-theme="dark"] [data-nc="sky"] {
   max-width: 88vw; text-align: center;
 }
 .sky-toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 640px) {
+  .lm-stormchip { bottom: 34px; font-size: 11px; padding: 6px 10px; }
+  .lm-legend { padding: 6px 8px 7px; }
+  .lm-sw i { width: 22px; }
+}
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 980px) {

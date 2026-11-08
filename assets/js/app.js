@@ -6,7 +6,7 @@ import { loadSky, loadGrid, loadStorms, reverseName, interpolator } from "./sour
 import { evaluate, glowFactors, scoreGrid } from "./scoring.js";
 import { CITIES, DEFAULT_CITY, cityById, nearestCity, cityLabel } from "./cities.js";
 import { fmtHM, phaseName } from "./astro.js";
-import { renderSkyMap } from "./map.js";
+import { updateLiveMap, setMapLoading } from "./live-map.js";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -148,7 +148,7 @@ const S = {
   city: null, data: null, days: [], loading: true, error: null,
   sel: "evening", refreshing: false,
   grid: null, gridScores: null, storms: null,
-  mapSpan: 8, mapCenter: null, mapError: false, extrasLoading: false
+  mapCenter: null, mapError: false, extrasLoading: false
 };
 
 const WX = {
@@ -276,6 +276,8 @@ function renderHero() {
   $("#updateTime").textContent = upd ? `${t().updated} ${fmtHM(upd, 8)}${S.data.cached ? "（缓存）" : ""}` : "—";
   const rb = $("#refreshBtn");
   if (rb) { rb.textContent = S.refreshing ? t().updating : t().refresh; rb.disabled = S.refreshing; }
+  const gb = $("#geoBtn");
+  if (gb) gb.textContent = t().geo;
 }
 
 function dateLabel(ev) {
@@ -604,7 +606,6 @@ function renderEvents() {
 }
 
 /* ---------- 渲染：晚霞地图 ---------- */
-let mapSeq = 0;
 async function renderMapSection() {
   const el = $("#skyMap");
   if (!el) return;
@@ -613,30 +614,22 @@ async function renderMapSection() {
     ? `<button class="sky-link" id="mapReset" type="button">${t().mapReset}</button>`
     : t().mapHint;
   const rb = $("#mapReset");
-  if (rb) rb.onclick = () => { S.mapCenter = null; S.mapSpan = 8; renderMapSection(); };
+  if (rb) rb.onclick = () => { S.mapCenter = null; renderMapSection(); };
+
   if (!S.gridScores || !S.gridScores.length) {
-    el.innerHTML = `<div class="sky-map-loading">${S.mapError ? t().mapFail : t().mapLoading}</div>`;
+    setMapLoading(S.mapError ? t().mapFail : t().mapLoading);
     return;
   }
-  const seq = ++mapSeq;
-  const center = S.mapCenter || { lat: S.city.lat, lon: S.city.lon };
-  try {
-    await renderSkyMap(el, {
-      lat: S.city.lat, lon: S.city.lon,
-      centerLat: center.lat, centerLon: center.lon,
-      span: S.mapSpan,
-      points: S.gridScores,
-      cities: CITIES,
-      storms: S.storms || [],
-      lang: lang(),
-      meLabel: nameOf(S.city),
-      focus: !!S.mapCenter,
-      compact: window.innerWidth < 640,
-      onZoom: (s) => { if (seq === mapSeq) { S.mapSpan = s; renderMapSection(); } }
-    });
-  } catch (e) {
-    if (seq === mapSeq) el.innerHTML = `<div class="sky-map-loading">${t().mapFail}</div>`;
-  }
+  setMapLoading(null);
+  updateLiveMap({
+    city: S.city,
+    cityLabel: nameOf(S.city),
+    cities: CITIES,
+    points: S.gridScores,
+    storms: S.storms || [],
+    lang: lang(),
+    focus: S.mapCenter
+  });
 }
 
 /* ---------- 渲染：天气与空气 ---------- */
@@ -724,7 +717,6 @@ function renderStorms() {
     const s = S.storms.find((x) => x.id === b.dataset.storm);
     if (!s) return;
     S.mapCenter = { lat: s.lat, lon: s.lon };
-    S.mapSpan = 18;
     renderMapSection();
     $("#skyMap").scrollIntoView({ behavior: "smooth", block: "center" });
   });

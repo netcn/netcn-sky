@@ -20,16 +20,18 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebSite","name":"火烧云","alternateName":"Sky","url":"https://sky.netcn.org/","description":"汇总六个数值模式与集合预报，给出今晚晚霞、朝霞、星空、月亮的观测概率。","inLanguage":"zh-CN"}
 </script>
-<link rel="stylesheet" href="assets/css/sky.css?v=7">
+<link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="assets/css/sky.css?v=8">
 <link rel="stylesheet" href="/shell/netcn-shell.css?v=20261107c5">
 <link rel="stylesheet" href="/shell/netcn-ui.css?v=20261107c5">
 <script src="/shell/shell.js?v=20261107c5"></script>
-<link rel="modulepreload" href="assets/js/app.js?v=7">
-<link rel="modulepreload" href="assets/js/astro.js?v=7">
-<link rel="modulepreload" href="assets/js/sources.js?v=7">
-<link rel="modulepreload" href="assets/js/scoring.js?v=7">
-<link rel="modulepreload" href="assets/js/cities.js?v=7">
-<link rel="modulepreload" href="assets/js/map.js?v=7">
+<script src="assets/vendor/leaflet/leaflet.js" defer></script>
+<link rel="modulepreload" href="assets/js/app.js?v=8">
+<link rel="modulepreload" href="assets/js/astro.js?v=8">
+<link rel="modulepreload" href="assets/js/sources.js?v=8">
+<link rel="modulepreload" href="assets/js/scoring.js?v=8">
+<link rel="modulepreload" href="assets/js/cities.js?v=8">
+<link rel="modulepreload" href="assets/js/live-map.js?v=8">
 </head>
 <body>
 <nav class="nc-shell" aria-label="netcn 站点导航">
@@ -94,7 +96,34 @@
       <h2 id="mapTitle">晚霞地图 · 你周围约 300 公里</h2>
       <span class="sky-hint" id="mapHint">颜色越暖，指数越高</span>
     </div>
-    <div id="skyMap" class="sky-map"><div class="sky-skeleton" style="height:320px"></div></div>
+    <div class="sky-map-shell">
+      <div class="sky-mapbar">
+        <div class="sky-seg" role="group" aria-label="底图">
+          <button type="button" data-base="sat" aria-pressed="true" data-lt="sat">卫星</button>
+          <button type="button" data-base="street" aria-pressed="false" data-lt="street">街道</button>
+          <button type="button" data-base="dark" aria-pressed="false" data-lt="dark">深色</button>
+        </div>
+        <div class="sky-layers">
+          <label><input type="checkbox" data-layer="glow" checked><span data-lt="glow">晚霞</span></label>
+          <label><input type="checkbox" data-layer="radar" checked><span data-lt="radar">雷达</span></label>
+          <label><input type="checkbox" data-layer="storms" checked><span data-lt="storms">台风</span></label>
+        </div>
+      </div>
+      <div id="skyMap" class="sky-map lm-map">
+        <div class="sky-skeleton" style="height:320px"></div>
+        <div class="lm-legend">
+          <span class="lm-legend-title">晚霞指数</span>
+          <div class="lm-sw"></div>
+          <div class="lm-scale"><span>0</span><span>50</span><span>100</span></div>
+        </div>
+        <div class="lm-radar" id="mapRadarCtl" hidden>
+          <button type="button" id="mapRadarPlay" aria-label="回放近 2 小时">▶</button>
+          <span id="mapRadarTime">—</span>
+        </div>
+        <button class="lm-stormchip" id="mapStormChip" type="button" hidden></button>
+      </div>
+      <p class="sky-map-src">底图 Esri · 雷达 RainViewer · 晚霞 Open-Meteo（ECMWF / CMA / ICON）</p>
+    </div>
   </section>
 
   <section class="sky-panel" aria-labelledby="tlTitle">
@@ -171,6 +200,6 @@
   <p class="sky-dialog-note">光污染为城市级估算；郊区、山区实际条件通常更好。</p>
 </dialog>
 
-<script type="module" src="assets/js/app.js?v=7"></script>
+<script type="module" src="assets/js/app.js?v=8"></script>
 </body>
 </html>
