@@ -98,7 +98,8 @@ Object.assign(T.zh, {
   stormsNone: "当前没有活跃的台风或热带气旋。",
   stormDist: (km) => `距你约 ${km.toLocaleString()} 公里`,
   stormView: "在地图上查看",
-  stormSource: "来源：NASA EONET，位置为最近一次记录。",
+  stormSource: "来源：NASA EONET。实线是历史路径，虚线是按最近移动线性外推 24 小时，不是官方预报。",
+  stormMove: (d, v) => `向${d}移动 · 约 ${v} 公里/小时`,
   geoTitle: "看你自己所在的位置",
   geoDesc: "允许定位后，页面会换成你附近的观测条件；不授权就继续看上海。",
   geoAllow: "允许定位", geoSkip: "先看上海",
@@ -122,7 +123,8 @@ Object.assign(T.en, {
   stormsNone: "No active typhoons or tropical cyclones right now.",
   stormDist: (km) => `about ${km.toLocaleString()} km from you`,
   stormView: "Show on map",
-  stormSource: "Source: NASA EONET; position is the latest recorded fix.",
+  stormSource: "Source: NASA EONET. Solid line is the observed track; dashed line is a 24 h linear extrapolation, not an official forecast.",
+  stormMove: (d, v) => `moving ${d} · about ${v} km/h`,
   geoTitle: "See conditions where you are",
   geoDesc: "Allow location and the page switches to your neighbourhood; otherwise it stays on Shanghai.",
   geoAllow: "Allow location", geoSkip: "Keep Shanghai",
@@ -695,6 +697,25 @@ function windName(deg, en) {
 }
 
 /* ---------- 渲染：台风 ---------- */
+function stormMotion(s) {
+  const t = (s.track || []).filter((p) => p && p.date);
+  if (t.length < 2) return null;
+  const a = t[Math.max(0, t.length - 5)];
+  const b = t[t.length - 1];
+  const hrs = (new Date(b.date) - new Date(a.date)) / 3600000;
+  if (!(hrs > 0)) return null;
+  const km = distKm(a.lat, a.lon, b.lat, b.lon);
+  const dx = (b.lon - a.lon) * Math.cos((b.lat * Math.PI) / 180);
+  const dy = b.lat - a.lat;
+  const brg = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+  const i = Math.round(brg / 45) % 8;
+  return {
+    kmh: Math.round(km / hrs),
+    zh: ["北", "东北", "东", "东南", "南", "西南", "西", "西北"][i],
+    en: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][i]
+  };
+}
+
 function renderStorms() {
   const box = $("#storms");
   if (!box) return;
@@ -707,16 +728,18 @@ function renderStorms() {
   box.innerHTML = `<div class="sky-storm-list">${list.map((s) => {
     const d = distKm(S.city.lat, S.city.lon, s.lat, s.lon);
     const date = (s.date || "").slice(5, 10).replace("-", "/");
+    const mo = stormMotion(s);
     return `<article class="sky-storm">
       <div class="sky-storm-name">🌀 ${s.title}</div>
       <div class="sky-storm-meta">${en ? "lat" : "北纬"} ${Math.abs(s.lat).toFixed(1)}° · ${en ? "lon" : "东经"} ${Math.abs(s.lon).toFixed(1)}° · ${t().stormDist(Math.round(d))}${date ? ` · ${date}` : ""}</div>
+      ${mo ? `<div class="sky-storm-move">${t().stormMove(en ? mo.en : mo.zh, mo.kmh)}</div>` : ""}
       <button class="sky-link" type="button" data-storm="${s.id}">${t().stormView}</button>
     </article>`;
   }).join("")}</div><p class="sky-storm-src">${t().stormSource}</p>`;
   box.querySelectorAll("[data-storm]").forEach((b) => b.onclick = () => {
     const s = S.storms.find((x) => x.id === b.dataset.storm);
     if (!s) return;
-    S.mapCenter = { lat: s.lat, lon: s.lon };
+    S.mapCenter = { lat: s.lat, lon: s.lon, track: s.track || [] };
     renderMapSection();
     $("#skyMap").scrollIntoView({ behavior: "smooth", block: "center" });
   });
@@ -875,7 +898,16 @@ function render() {
 }
 
 /* ---------- 启动 ---------- */
-S.city = loadCity();
+function cityFromQuery() {
+  try {
+    const id = new URLSearchParams(location.search).get("city");
+    if (!id) return null;
+    return CITIES.find((c) => c.id === id) || null;
+  } catch (e) { return null; }
+}
+const qCity = cityFromQuery();
+S.city = qCity || loadCity();
+if (qCity) saveCity(qCity);
 window.__sky = S;
 $("#citySearch").placeholder = t().cloudPh;
 bind();

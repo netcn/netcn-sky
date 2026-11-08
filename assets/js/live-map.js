@@ -6,7 +6,7 @@
    - 台风：NASA EONET 最新记录位置
    地图按需初始化（进入视口才加载 Leaflet 实例与瓦片），不拖首屏。
    ============================================================ */
-import { fmtHM } from "./astro.js";
+import { fmtHM, parseLocal } from "./astro.js";
 
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
 const BASEMAPS = {
@@ -29,9 +29,18 @@ const GLOW_STOPS = [
   [100, [168, 24, 108, 244]]
 ];
 
+const CLOUD_STOPS = [
+  [0, [255, 255, 255, 0]],
+  [18, [255, 255, 255, 26]],
+  [42, [246, 250, 255, 70]],
+  [66, [228, 238, 250, 108]],
+  [86, [208, 222, 240, 134]],
+  [100, [186, 203, 228, 158]]
+];
+
 const T = {
   zh: {
-    glow: "晚霞", radar: "雷达", storms: "台风",
+    glow: "晚霞", radar: "雷达", cloud: "云量", storms: "台风",
     sat: "卫星", street: "街道", dark: "深色",
     glowTitle: "晚霞指数", radarTitle: "雷达降水", stormNote: "台风",
     play: "回放近 2 小时", pause: "暂停",
@@ -39,7 +48,7 @@ const T = {
     empty: "地图数据暂时不可用"
   },
   en: {
-    glow: "Glow", radar: "Radar", storms: "Storms",
+    glow: "Glow", radar: "Radar", cloud: "Cloud", storms: "Storms",
     sat: "Satellite", street: "Street", dark: "Dark",
     glowTitle: "Glow index", radarTitle: "Radar", stormNote: "Storm",
     play: "Replay last 2h", pause: "Pause",
@@ -48,20 +57,25 @@ const T = {
   }
 };
 
-function ramp(v) {
-  const x = Math.max(0, Math.min(100, v));
-  let a = GLOW_STOPS[0], b = GLOW_STOPS[GLOW_STOPS.length - 1];
-  for (let i = 0; i < GLOW_STOPS.length - 1; i++) {
-    if (x >= GLOW_STOPS[i][0] && x <= GLOW_STOPS[i + 1][0]) { a = GLOW_STOPS[i]; b = GLOW_STOPS[i + 1]; break; }
-  }
-  const k = b[0] === a[0] ? 0 : (x - a[0]) / (b[0] - a[0]);
-  return [
-    Math.round(a[1][0] + (b[1][0] - a[1][0]) * k),
-    Math.round(a[1][1] + (b[1][1] - a[1][1]) * k),
-    Math.round(a[1][2] + (b[1][2] - a[1][2]) * k),
-    Math.round(a[1][3] + (b[1][3] - a[1][3]) * k)
-  ];
+function makeRamp(stops) {
+  return (v) => {
+    const x = Math.max(0, Math.min(100, v));
+    let a = stops[0], b = stops[stops.length - 1];
+    for (let i = 0; i < stops.length - 1; i++) {
+      if (x >= stops[i][0] && x <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
+    }
+    const k = b[0] === a[0] ? 0 : (x - a[0]) / (b[0] - a[0]);
+    return [
+      Math.round(a[1][0] + (b[1][0] - a[1][0]) * k),
+      Math.round(a[1][1] + (b[1][1] - a[1][1]) * k),
+      Math.round(a[1][2] + (b[1][2] - a[1][2]) * k),
+      Math.round(a[1][3] + (b[1][3] - a[1][3]) * k)
+    ];
+  };
 }
+const glowRamp = makeRamp(GLOW_STOPS);
+const ramp = glowRamp;
+const cloudRamp = makeRamp(CLOUD_STOPS);
 const rgba = (c) => `rgba(${c[0]},${c[1]},${c[2]},${(c[3] / 255).toFixed(2)})`;
 
 /* ---------- 网格 → 热力图 ---------- */
@@ -80,7 +94,7 @@ function viewBoundsOf(points) {
   const { lats, lons } = meta(points);
   return [[lats[0], lons[0]], [lats[lats.length - 1], lons[lons.length - 1]]];
 }
-function paint(points, values, size = 168, feather = 0.2) {
+function paint(points, values, colorFn, size = 168, feather = 0.2) {
   const { rows, cols } = meta(points);
   const cv = document.createElement("canvas");
   cv.width = cv.height = size;
@@ -103,7 +117,7 @@ function paint(points, values, size = 168, feather = 0.2) {
       const tx = gx - c0;
       const v = (at(r0, c0) * (1 - tx) + at(r0, c1) * tx) * (1 - ty)
         + (at(r1, c0) * (1 - tx) + at(r1, c1) * tx) * ty;
-      const col = ramp(v);
+      const col = colorFn(v);
       let e = Math.min(
         Math.min(x, size - 1 - x) / band,
         Math.min(y, size - 1 - y) / band,
@@ -137,6 +151,14 @@ let radarLayers = new Map();
 let radarIdx = -1;
 let radarTimer = null;
 let radarBusy = false;
+let cloudOn = false;
+let cloudData = null;
+let cloudUrls = [];
+let cloudIdx = 0;
+let cloudTimer = null;
+let cloudBusy = false;
+let cloudOverlay = null;
+let cloudCityKey = "";
 let stormSig = "";
 let glowSig = "";
 let glowUrl = "";
@@ -163,9 +185,12 @@ function init(el) {
   window.__skyMap = map;
   map.createPane("glowPane");
   map.getPane("glowPane").style.zIndex = "350";
+  map.createPane("cloudPane");
+  map.getPane("cloudPane").style.zIndex = "360";
   map.createPane("radarPane");
   map.getPane("radarPane").style.zIndex = "380";
   map.getPane("glowPane").style.pointerEvents = "none";
+  map.getPane("cloudPane").style.pointerEvents = "none";
   map.getPane("radarPane").style.pointerEvents = "none";
 
   try {
@@ -188,6 +213,8 @@ function init(el) {
     });
     const play = el2.querySelector("#mapRadarPlay");
     if (play) play.onclick = toggleRadarPlay;
+    const cplay = el2.querySelector("#mapCloudPlay");
+    if (cplay) cplay.onclick = toggleCloudPlay;
   }
   bindStormChip();
   map.on("moveend", checkStormChip);
@@ -265,8 +292,9 @@ function apply() {
 
   document.querySelectorAll("[data-layer]").forEach((cb) => {
     cb.checked = cb.dataset.layer === "radar" ? radarOn
-      : cb.dataset.layer === "storms" ? opts.stormsOn !== false
-        : opts.glowOn !== false;
+      : cb.dataset.layer === "cloud" ? cloudOn
+        : cb.dataset.layer === "storms" ? opts.stormsOn !== false
+          : opts.glowOn !== false;
   });
   document.querySelectorAll("[data-base]").forEach((b) => {
     b.setAttribute("aria-pressed", String(b.dataset.base === baseKind));
@@ -279,7 +307,7 @@ function apply() {
     if (sig === glowSig && glowUrl) {
       url = glowUrl;
     } else {
-      url = paint(opts.points, opts.points.map((p) => p.score));
+      url = paint(opts.points, opts.points.map((p) => p.score), glowRamp);
       glowSig = sig;
       glowUrl = url;
     }
@@ -330,6 +358,31 @@ function apply() {
     if (stormGroup) { map.removeLayer(stormGroup); stormGroup = null; }
     stormGroup = L.layerGroup();
     for (const s of storms) {
+      const tr = (s.track || []).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+      if (tr.length > 1) {
+        L.polyline(tr.map((p) => [p.lat, p.lon]), {
+          color: "#ffb36b", weight: 1.6, opacity: 0.7, interactive: false
+        }).addTo(stormGroup);
+        const a = tr[Math.max(0, tr.length - 6)];
+        const b = tr[tr.length - 1];
+        const hrs = (new Date(b.date) - new Date(a.date)) / 3600000;
+        if (hrs > 0) {
+          const vx = (b.lon - a.lon) / hrs;
+          const vy = (b.lat - a.lat) / hrs;
+          const p24 = [b.lat + vy * 24, b.lon + vx * 24];
+          const p48 = [b.lat + vy * 48, b.lon + vx * 48];
+          L.polyline([[b.lat, b.lon], p24], {
+            color: "#ffd9a8", weight: 1.4, opacity: 0.85, dashArray: "4 5", interactive: false
+          }).addTo(stormGroup);
+          L.polyline([p24, p48], {
+            color: "#ffd9a8", weight: 1.2, opacity: 0.5, dashArray: "3 6", interactive: false
+          }).addTo(stormGroup);
+          L.circleMarker(p24, { radius: 3, color: "#ffd9a8", weight: 1.4, fillColor: "#ff8a3d", fillOpacity: 0.85 })
+            .bindTooltip(L0 === "en" ? "+24h (linear)" : "+24h 外推", {
+              permanent: true, direction: "right", className: "lm-storm", offset: [5, 0]
+            }).addTo(stormGroup);
+        }
+      }
       L.circleMarker([s.lat, s.lon], { radius: 5, color: "#ffd9a8", weight: 2, fillColor: "#ff8a3d", fillOpacity: 0.9 })
         .bindTooltip(L0 === "en" ? s.title : `🌀 ${s.title}`, {
           permanent: true, direction: "right", className: "lm-storm", offset: [7, 0]
@@ -337,6 +390,22 @@ function apply() {
     }
     if (opts.stormsOn !== false) stormGroup.addTo(map);
   }
+  // 云量：城市变了就丢弃旧网格；开着就恢复当前帧
+  const ckey = city.lat.toFixed(2) + "," + city.lon.toFixed(2);
+  if (cloudData && cloudCityKey !== ckey) {
+    stopCloudPlay();
+    if (cloudOverlay && map.hasLayer(cloudOverlay)) map.removeLayer(cloudOverlay);
+    cloudOverlay = null;
+    cloudData = null;
+    cloudUrls = [];
+    setCloudChip(false);
+    if (cloudOn) ensureCloud().then(() => showCloud(0)).catch(() => {});
+  }
+  if (cloudOn && cloudData && cloudOverlay) {
+    if (!map.hasLayer(cloudOverlay)) cloudOverlay.addTo(map);
+    showCloud(cloudIdx);
+  }
+
   if (radarOn && radarMeta && radarIdx >= 0) showRadar(radarIdx);
   checkStormChip();
 
@@ -347,7 +416,17 @@ function apply() {
     requestAnimationFrame(() => {
       map.invalidateSize();
       if (opts.focus) {
-        map.setView([opts.focus.lat, opts.focus.lon], 5);
+        const tr = (opts.focus.track || []).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+        if (tr.length > 1) {
+          const pts = tr.map((p) => [p.lat, p.lon]);
+          const a = tr[Math.max(0, tr.length - 6)];
+          const b = tr[tr.length - 1];
+          const hrs = (new Date(b.date) - new Date(a.date)) / 3600000;
+          if (hrs > 0) pts.push([b.lat + ((b.lat - a.lat) / hrs) * 24, b.lon + ((b.lon - a.lon) / hrs) * 24]);
+          map.fitBounds(L.latLngBounds(pts), { padding: [30, 30], maxZoom: 6 });
+        } else {
+          map.setView([opts.focus.lat, opts.focus.lon], 5);
+        }
       } else if (points && points.length) {
         map.fitBounds(viewBoundsOf(points), { padding: [18, 18], maxZoom: 9 });
       } else {
@@ -370,6 +449,113 @@ function scoreAt(points, lat, lon) {
   return best ? Math.round(best.score) : null;
 }
 
+/* ---------- 云量预报 ---------- */
+function makePoints(lat, lon, n, step) {
+  const cos = Math.max(0.3, Math.cos(lat * Math.PI / 180));
+  const half = (n - 1) / 2;
+  const pts = [];
+  for (let j = -half; j <= half; j++) {
+    for (let i = -half; i <= half; i++) {
+      pts.push({ lat: +(lat + j * step).toFixed(3), lon: +(lon + (i * step) / cos).toFixed(3) });
+    }
+  }
+  return pts;
+}
+
+async function ensureCloud() {
+  if (!opts || !map) return null;
+  const key = opts.city.lat.toFixed(2) + "," + opts.city.lon.toFixed(2);
+  if (cloudData && cloudCityKey === key) return cloudData;
+  if (cloudBusy) {
+    while (cloudBusy) await new Promise((r) => setTimeout(r, 150));
+    if (cloudData && cloudCityKey === key) return cloudData;
+  }
+  cloudBusy = true;
+  try {
+    const { lat, lon } = opts.city;
+    const pts = makePoints(lat, lon, 7, 0.5);
+    const base = `latitude=${pts.map((p) => p.lat).join(",")}&longitude=${pts.map((p) => p.lon).join(",")}`
+      + "&hourly=cloud_cover&models=ecmwf_ifs025&timezone=Asia%2FShanghai&forecast_days=2";
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 45000);
+    let raw;
+    try {
+      const r = await fetch("https://api.open-meteo.com/v1/forecast?" + base, { cache: "no-cache", signal: ctrl.signal });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      raw = await r.json();
+    } finally {
+      clearTimeout(timer);
+    }
+    const arr = Array.isArray(raw) ? raw : [raw];
+    const keyName = "cloud_cover_ecmwf_ifs025";
+    const times = (arr[0].hourly.time || []).map((x) => parseLocal(x).getTime());
+    const now = new Date();
+    now.setMinutes(0, 0, 0);
+    const frames = [];
+    for (let i = 0; i < times.length && frames.length < 24; i++) {
+      if (times[i] < now.getTime()) continue;
+      const values = arr.map((p) => {
+        const a = p.hourly[keyName] || p.hourly.cloud_cover || [];
+        const v = a[i];
+        return v == null ? 0 : v;
+      });
+      frames.push({ t: new Date(times[i]), values });
+    }
+    if (!frames.length) throw new Error("no cloud frames");
+    cloudUrls = frames.map((f) => paint(pts, f.values, cloudRamp, 140, 0.22));
+    cloudData = { points: pts, frames, urls: cloudUrls, bounds: boundsOf(pts) };
+    cloudCityKey = key;
+    return cloudData;
+  } finally {
+    cloudBusy = false;
+  }
+}
+
+function showCloud(i) {
+  if (!cloudData || !map) return;
+  const idx = Math.max(0, Math.min(cloudData.frames.length - 1, i));
+  cloudIdx = idx;
+  if (!cloudOverlay) {
+    cloudOverlay = L.imageOverlay(cloudData.urls[idx], cloudData.bounds, {
+      pane: "cloudPane", opacity: 0.9, interactive: false
+    });
+  } else {
+    cloudOverlay.setUrl(cloudData.urls[idx]);
+    cloudOverlay.setBounds(cloudData.bounds);
+  }
+  if (!map.hasLayer(cloudOverlay)) cloudOverlay.addTo(map);
+  setCloudChip(true, cloudData.frames[idx].t);
+}
+
+function toggleCloudPlay() {
+  if (!cloudData) return;
+  if (cloudTimer) { stopCloudPlay(); return; }
+  let i = 0;
+  const btn = document.querySelector("#mapCloudPlay");
+  if (btn) { btn.textContent = "❚❚"; btn.classList.add("playing"); }
+  showCloud(0);
+  cloudTimer = setInterval(() => {
+    showCloud(i);
+    i += 1;
+    if (i >= cloudData.frames.length) stopCloudPlay();
+  }, 900);
+}
+function stopCloudPlay() {
+  if (cloudTimer) clearInterval(cloudTimer);
+  cloudTimer = null;
+  const btn = document.querySelector("#mapCloudPlay");
+  if (btn) { btn.textContent = "▶"; btn.classList.remove("playing"); }
+}
+function setCloudChip(on, date) {
+  const chip = document.querySelector("#mapCloudCtl");
+  if (!chip) return;
+  chip.hidden = !on;
+  if (date) {
+    const time = document.querySelector("#mapCloudTime");
+    if (time) time.textContent = fmtHM(date);
+  }
+}
+
 /* ---------- 图层开关 ---------- */
 function toggleLayer(kind, on) {
   if (!map) return;
@@ -390,6 +576,20 @@ function toggleLayer(kind, on) {
       radarLayers.clear();
       radarIdx = -1;
       setRadarChip(false);
+    }
+  } else if (kind === "cloud") {
+    cloudOn = on;
+    if (on) {
+      ensureCloud().then(() => showCloud(0)).catch(() => {
+        cloudOn = false;
+        const cb = document.querySelector('[data-layer="cloud"]');
+        if (cb) cb.checked = false;
+        setCloudChip(false);
+      });
+    } else {
+      stopCloudPlay();
+      if (cloudOverlay && map.hasLayer(cloudOverlay)) map.removeLayer(cloudOverlay);
+      setCloudChip(false);
     }
   } else if (kind === "storms") {
     opts.stormsOn = on;

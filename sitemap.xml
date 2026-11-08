@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://sky.netcn.org/</loc><changefreq>hourly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://sky.netcn.org/city/</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sky.netcn.org/city/shanghai/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://sky.netcn.org/city/beijing/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://sky.netcn.org/city/guangzhou/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://sky.netcn.org/city/shenzhen/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://sky.netcn.org/city/hangzhou/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://sky.netcn.org/city/chengdu/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://sky.netcn.org/city/xian/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://sky.netcn.org/city/kunming/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://sky.netcn.org/city/lhasa/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://sky.netcn.org/city/dunhuang/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://sky.netcn.org/city/qingdao/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://sky.netcn.org/city/xiamen/</loc><lastmod>2026-11-08</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 </urlset>

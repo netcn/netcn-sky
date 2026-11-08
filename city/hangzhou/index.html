@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>杭州今晚有晚霞吗？晚霞、星空与月亮观测 · 火烧云</title>
+<meta name="description" content="杭州今晚晚霞、朝霞、星空、月亮实时观测概率。杭州西边是天目山、大明山，往西一小时就能把光污染甩开；市区看晚霞，西湖西岸和钱塘江边都不错。">
+<link rel="canonical" href="https://sky.netcn.org/city/hangzhou/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="杭州今晚有晚霞吗？晚霞、星空与月亮观测 · 火烧云">
+<meta property="og:description" content="杭州今晚晚霞、朝霞、星空、月亮实时观测概率。杭州西边是天目山、大明山，往西一小时就能把光污染甩开；市区看晚霞，西湖西岸和钱塘江边都不错。">
+<meta property="og:url" content="https://sky.netcn.org/city/hangzhou/">
+<meta property="og:site_name" content="火烧云">
+<meta property="og:image" content="https://sky.netcn.org/assets/icon-192.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192">
+<link rel="stylesheet" href="/assets/css/sky.css?v=9">
+<link rel="stylesheet" href="/assets/css/city.css?v=1">
+<link rel="stylesheet" href="/shell/netcn-shell.css?v=20261107c5">
+<link rel="stylesheet" href="/shell/netcn-ui.css?v=20261107c5">
+<script src="/shell/shell.js?v=20261107c5"></script>
+<script type="application/ld+json">[{"@context": "https://schema.org", "@type": "WebPage", "name": "杭州今晚有晚霞吗？晚霞、星空与月亮观测 · 火烧云", "description": "杭州今晚晚霞、朝霞、星空、月亮实时观测概率。杭州西边是天目山、大明山，往西一小时就能把光污染甩开；市区看晚霞，西湖西岸和钱塘江边都不错。", "url": "https://sky.netcn.org/city/hangzhou/", "inLanguage": "zh-CN", "about": {"@type": "Place", "name": "杭州", "geo": {"@type": "GeoCoordinates", "latitude": 30.2741, "longitude": 120.1551}}, "isPartOf": {"@type": "WebSite", "name": "火烧云", "url": "https://sky.netcn.org/"}}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "杭州周边看星去哪里？", "acceptedAnswer": {"@type": "Answer", "text": "天目山、大明山、千岛湖；最近的是临安太湖源一带，但暗夜程度不如前两者。"}}, {"@type": "Question", "name": "西湖边能看晚霞吗？", "acceptedAnswer": {"@type": "Answer", "text": "可以。杨公堤、苏堤西侧、宝石山都是常见机位，西向有山脊做前景。"}}]}]</script>
+</head>
+<body data-city="hangzhou">
+<nav class="nc-shell" aria-label="netcn 站点导航">
+  <a class="nc-brand" href="/" aria-label="返回首页"><span class="nc-mk" aria-hidden="true"></span><span class="nc-brand-txt">火烧云</span></a>
+  <nav class="nc-sw" aria-label="netcn 站点">
+    <a href="https://netcn.org/" data-nc-to="nav">导航</a>
+    <a href="https://ask.netcn.org/" data-nc-to="ask">科学问答</a>
+    <a href="https://quiz.netcn.org/" data-nc-to="quiz">头脑体操</a>
+    <a href="https://game.netcn.org/" data-nc-to="game">玩游戏</a>
+    <a href="https://sky.netcn.org/" data-nc-to="sky">火烧云</a>
+  </nav>
+  <div class="nc-search has-icon">
+    <span class="search-icon" aria-hidden="true">⌕</span>
+    <input id="citySearch" type="search" placeholder="搜城市，回车跳转" autocomplete="off" aria-label="搜索城市">
+  </div>
+  <div class="nc-tools">
+    <button class="nc-tool" id="ncTheme" type="button" aria-label="切换明暗">☾</button>
+  </div>
+</nav>
+
+<main class="sky-main city-main">
+  <nav class="city-crumb" aria-label="面包屑">
+    <a href="/">火烧云</a><span>/</span><a href="/city/">城市</a><span>/</span><span>杭州</span>
+  </nav>
+
+  <section class="sky-hero city-hero">
+    <div class="sky-kicker">
+      <span class="city-pill">📍 杭州</span>
+      <span class="sky-dot">·</span>
+      <span id="dateLabel">—</span>
+    </div>
+    <h1>杭州今晚有晚霞吗？</h1>
+    <p class="city-lede">杭州西边是天目山、大明山，往西一小时就能把光污染甩开；市区看晚霞，西湖西岸和钱塘江边都不错。</p>
+    <p class="sky-verdict" id="verdictText">正在读取今晚的观测条件…</p>
+    <div class="sky-meta">
+      <span id="updateTime">—</span>
+      <a class="sky-link" href="/?city=hangzhou">在地图上查看</a>
+    </div>
+  </section>
+
+  <section class="sky-cards city-cards" aria-label="今晚评分">
+    <article class="sky-card">
+      <div class="sky-card-label">火烧云</div>
+      <div class="sky-card-value"><span id="cGlow">—</span><small>%</small></div>
+      <div class="sky-card-sub" id="sGlow">正在计算</div>
+      <div class="sky-card-meter"><i id="bGlow" style="width:2%"></i></div>
+    </article>
+    <article class="sky-card">
+      <div class="sky-card-label">朝霞</div>
+      <div class="sky-card-value"><span id="cDawn">—</span><small>%</small></div>
+      <div class="sky-card-sub" id="sDawn">正在计算</div>
+      <div class="sky-card-meter"><i id="bDawn" style="width:2%"></i></div>
+    </article>
+    <article class="sky-card">
+      <div class="sky-card-label">星空</div>
+      <div class="sky-card-value"><span id="cStar">—</span></div>
+      <div class="sky-card-sub" id="sStar">正在计算</div>
+      <div class="sky-card-meter"><i id="bStar" style="width:2%"></i></div>
+    </article>
+    <article class="sky-card">
+      <div class="sky-card-label">月亮</div>
+      <div class="sky-card-value"><span id="cMoon">—</span></div>
+      <div class="sky-card-sub" id="sMoon">正在计算</div>
+      <div class="sky-card-meter"><i id="bMoon" style="width:2%"></i></div>
+    </article>
+  </section>
+
+  <section class="city-strip" aria-label="今晚时间">
+    <div><span>日落</span><b id="cSunset">—</b></div>
+    <div><span>蓝调时刻</span><b id="cBlue">—</b></div>
+    <div><span>日出</span><b id="cSunrise">—</b></div>
+    <div><span>现在云量</span><b id="cCloud">—</b></div>
+  </section>
+
+  <section class="city-sec">
+    <h2>去哪儿看</h2>
+    <div class="city-spots"><article class="city-spot"><b>天目山</b><p>临安西部，森林覆盖高，山顶有观测平台。</p><span>约 90 公里 · Bortle 4</span></article><article class="city-spot"><b>大明山</b><p>海拔 1400 米，冬季有雾凇，夏季银河。</p><span>约 120 公里 · Bortle 4</span></article><article class="city-spot"><b>千岛湖</b><p>水面开阔、岛屿遮挡少，适合过夜观测。</p><span>约 130 公里 · Bortle 4</span></article></div>
+  </section>
+
+  <div class="city-two">
+    <section class="city-sec">
+      <h2>光污染与方向</h2>
+      <p>市区 Bortle 8；临安西部 B4。西湖西岸（杨公堤以西）看晚霞，西向有山脊轮廓。</p>
+    </section>
+    <section class="city-sec">
+      <h2>季节与天气</h2>
+      <p>9–11 月最舒服；6 月梅雨；冬季山区湿冷，注意路面结冰。</p>
+    </section>
+  </div>
+
+  <section class="city-sec">
+    <h2>最近三天</h2>
+    <div class="city-days" id="cDays">
+      <div class="city-day"><b>正在读取</b><span>—</span><em>—</em><span class="city-day-val">—</span></div>
+    </div>
+  </section>
+
+  <section class="city-sec city-faq">
+    <h2>常见问题</h2>
+    <details><summary>杭州周边看星去哪里？</summary><p>天目山、大明山、千岛湖；最近的是临安太湖源一带，但暗夜程度不如前两者。</p></details><details><summary>西湖边能看晚霞吗？</summary><p>可以。杨公堤、苏堤西侧、宝石山都是常见机位，西向有山脊做前景。</p></details>
+  </section>
+
+  <p class="city-more">其他城市：<a href="/city/shanghai/">上海</a>　<a href="/city/beijing/">北京</a>　<a href="/city/guangzhou/">广州</a>　<a href="/city/shenzhen/">深圳</a>　<a href="/city/chengdu/">成都</a>　<a href="/city/xian/">西安</a>　<a href="/city/kunming/">昆明</a>　<a href="/city/lhasa/">拉萨</a>　<a href="/city/dunhuang/">敦煌</a>　<a href="/city/qingdao/">青岛</a>　<a href="/city/xiamen/">厦门</a></p>
+</main>
+
+<footer class="nc-foot">
+  <nav class="nc-foot-nav" aria-label="netcn 站点">
+    <a href="https://netcn.org/" data-nc-to="nav">导航</a>
+    <a href="https://ask.netcn.org/" data-nc-to="ask">科学问答</a>
+    <a href="https://quiz.netcn.org/" data-nc-to="quiz">头脑体操</a>
+    <a href="https://game.netcn.org/" data-nc-to="game">玩游戏</a>
+    <a href="https://sky.netcn.org/" data-nc-to="sky">火烧云</a>
+  </nav>
+  <span class="nc-foot-note">© 2011–2026 netcn.org</span>
+  <span class="nc-foot-site">晚霞 · 朝霞 · 星空 · 月亮 · 流星雨　数据仅供参考</span>
+</footer>
+<script type="module" src="/assets/js/city-page.js?v=1"></script>
+</body>
+</html>

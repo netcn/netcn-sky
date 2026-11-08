@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>城市今晚观测 · 晚霞、星空与月亮 · 火烧云</title>
+<meta name="description" content="按城市查看今晚的晚霞、朝霞、星空与月亮观测条件：上海、北京、广州、深圳、杭州、成都、西安、昆明、拉萨、敦煌、青岛、厦门。">
+<link rel="canonical" href="https://sky.netcn.org/city/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="城市今晚观测 · 火烧云">
+<meta property="og:description" content="按城市查看今晚的晚霞、朝霞、星空与月亮观测条件。">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="stylesheet" href="/assets/css/sky.css?v=9">
+<link rel="stylesheet" href="/assets/css/city.css?v=1">
+<link rel="stylesheet" href="/shell/netcn-shell.css?v=20261107c5">
+<link rel="stylesheet" href="/shell/netcn-ui.css?v=20261107c5">
+<script src="/shell/shell.js?v=20261107c5"></script>
+</head>
+<body>
+<nav class="nc-shell" aria-label="netcn 站点导航">
+  <a class="nc-brand" href="/" aria-label="返回首页"><span class="nc-mk" aria-hidden="true"></span><span class="nc-brand-txt">火烧云</span></a>
+  <nav class="nc-sw" aria-label="netcn 站点">
+    <a href="https://netcn.org/" data-nc-to="nav">导航</a>
+    <a href="https://ask.netcn.org/" data-nc-to="ask">科学问答</a>
+    <a href="https://quiz.netcn.org/" data-nc-to="quiz">头脑体操</a>
+    <a href="https://game.netcn.org/" data-nc-to="game">玩游戏</a>
+    <a href="https://sky.netcn.org/" data-nc-to="sky">火烧云</a>
+  </nav>
+  <div class="nc-search has-icon">
+    <span class="search-icon" aria-hidden="true">⌕</span>
+    <input id="citySearch" type="search" placeholder="搜城市，回车跳转" autocomplete="off" aria-label="搜索城市">
+  </div>
+  <div class="nc-tools">
+    <button class="nc-tool" id="ncTheme" type="button" aria-label="切换明暗">☾</button>
+  </div>
+</nav>
+<main class="sky-main city-main">
+  <nav class="city-crumb" aria-label="面包屑"><a href="/">火烧云</a><span>/</span><span>城市</span></nav>
+  <section class="sky-hero">
+    <div class="sky-kicker"><span class="city-pill">城市</span><span class="sky-dot">·</span><span>12 个城市</span></div>
+    <h1>按城市看今晚</h1>
+    <p class="city-lede">同一个晚上，不同城市看到的天空完全不同。选一个城市，看当地今晚的晚霞、朝霞、星空与月亮，以及去哪儿看。</p>
+    <div class="sky-meta"><a class="sky-link" href="/">回到今晚地图</a></div>
+  </section>
+  <section class="city-sec">
+    <div class="city-index-grid"><a class="city-index-card" href="/city/shanghai/"><b>上海</b><p>上海看天，最大的对手不是云，是灯光。市区肉眼大约到 3–4 等星，往东过长江口才明显变暗；晚霞则相反，越靠近…</p><span>Bortle 8 · 31.2°N</span></a><a class="city-index-card" href="/city/beijing/"><b>北京</b><p>北京西北高、东南平，山区离城不远。城区看晚霞靠西山轮廓，看星要往灵山、百花山方向走。…</p><span>Bortle 8 · 39.9°N</span></a><a class="city-index-card" href="/city/guangzhou/"><b>广州</b><p>广州北边是山，南边是海。城区湿热、云低，看星要往从化、增城方向上山；晚霞则常出现在台风外围和冷空气南下前。…</p><span>Bortle 8 · 23.1°N</span></a><a class="city-index-card" href="/city/shenzhen/"><b>深圳</b><p>深圳东边是大鹏半岛，海岸线朝东，是华南少有的“下班就能到海边看日出”的城市。…</p><span>Bortle 8 · 22.5°N</span></a><a class="city-index-card" href="/city/hangzhou/"><b>杭州</b><p>杭州西边是天目山、大明山，往西一小时就能把光污染甩开；市区看晚霞，西湖西岸和钱塘江边都不错。…</p><span>Bortle 8 · 30.3°N</span></a><a class="city-index-card" href="/city/chengdu/"><b>成都</b><p>成都位于盆地，云和雾把星空挡掉大半。想看星，要么上龙泉山碰运气，要么直接往川西高原走。…</p><span>Bortle 8 · 30.6°N</span></a><a class="city-index-card" href="/city/xian/"><b>西安</b><p>西安南边就是秦岭，一小时车程能从 Bortle 8 掉到 B4。看晚霞，城墙、浐灞和秦岭北麓都是好机位。…</p><span>Bortle 8 · 34.3°N</span></a><a class="city-index-card" href="/city/kunming/"><b>昆明</b><p>昆明海拔 1900 米，干季晴天多，是省会里观星条件最好的之一。往北到轿子雪山、往南到抚仙湖，都很暗。…</p><span>Bortle 7 · 25.0°N</span></a><a class="city-index-card" href="/city/lhasa/"><b>拉萨</b><p>拉萨海拔 3650 米，空气稀薄干燥，是国内最容易看到银河的省会。市区光污染不低，但出城 20 公里就明显变…</p><span>Bortle 5 · 29.7°N</span></a><a class="city-index-card" href="/city/dunhuang/"><b>敦煌</b><p>敦煌年降水不到 50 毫米，空气干、云少，是国内最稳的观星地之一。缺点是小城灯光集中在绿洲，出城几公里就暗下…</p><span>Bortle 4 · 40.1°N</span></a><a class="city-index-card" href="/city/qingdao/"><b>青岛</b><p>青岛三面环海，东边崂山、灵山岛把城市灯光挡在身后。看晚霞要去西向海岸，看星要往东出海岛。…</p><span>Bortle 7 · 36.1°N</span></a><a class="city-index-card" href="/city/xiamen/"><b>厦门</b><p>厦门岛小、灯光集中，但同安北部山区和漳州方向很快就暗下来。看晚霞在环岛路西向，看星要往山里走。…</p><span>Bortle 7 · 24.5°N</span></a></div>
+  </section>
+</main>
+<footer class="nc-foot">
+  <nav class="nc-foot-nav" aria-label="netcn 站点">
+    <a href="https://netcn.org/" data-nc-to="nav">导航</a>
+    <a href="https://ask.netcn.org/" data-nc-to="ask">科学问答</a>
+    <a href="https://quiz.netcn.org/" data-nc-to="quiz">头脑体操</a>
+    <a href="https://game.netcn.org/" data-nc-to="game">玩游戏</a>
+    <a href="https://sky.netcn.org/" data-nc-to="sky">火烧云</a>
+  </nav>
+  <span class="nc-foot-note">© 2011–2026 netcn.org</span>
+  <span class="nc-foot-site">晚霞 · 朝霞 · 星空 · 月亮 · 流星雨　数据仅供参考</span>
+</footer>
+</body>
+</html>

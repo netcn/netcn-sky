@@ -290,15 +290,24 @@ export async function loadStorms(opts = {}) {
   }
   const d = await getJSON("https://eonet.gsfc.nasa.gov/api/v3/events?category=severeStorms&status=open&days=60", 20000);
   const list = (d.events || []).map((e) => {
-    const g = e.geometry && e.geometry[e.geometry.length - 1];
-    if (!g || !Array.isArray(g.coordinates)) return null;
+    const geom = (e.geometry || []).filter((g) => g && Array.isArray(g.coordinates));
+    const g = geom[geom.length - 1];
+    if (!g) return null;
     if (!/typhoon|tropical cyclone|hurricane|cyclone/i.test(e.title || "")) return null;
+    const track = geom.map((p) => ({
+      lat: p.coordinates[1],
+      lon: p.coordinates[0],
+      date: p.date,
+      mag: Number.isFinite(p.magnitudeValue) ? p.magnitudeValue : null
+    }));
     return {
       id: e.id,
       title: e.title,
       lat: g.coordinates[1],
       lon: g.coordinates[0],
       date: g.date,
+      mag: Number.isFinite(g.magnitudeValue) ? g.magnitudeValue : null,
+      track,
       link: (e.sources && e.sources[0] && e.sources[0].url) || "https://eonet.gsfc.nasa.gov/"
     };
   }).filter(Boolean);

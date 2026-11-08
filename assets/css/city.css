@@ -1,0 +1,175 @@
+/* ============================================================
+   城市落地页 · 在 sky.css 之上追加
+   ============================================================ */
+
+.city-main { max-width: 980px; }
+
+.city-crumb {
+  display: flex; align-items: center; gap: 7px;
+  margin: 2px 0 12px;
+  font-size: 12px; color: var(--ui-ink3);
+}
+.city-crumb a { color: var(--ui-ink2); text-decoration: none; }
+.city-crumb a:hover { color: var(--ui-ac); }
+
+.city-hero { padding-bottom: 18px; }
+.city-hero h1 { margin-bottom: 8px; }
+.city-lede {
+  margin: 0 0 10px;
+  max-width: 720px;
+  font-size: 14.5px; line-height: 1.75; color: var(--ui-ink2);
+}
+.city-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--ui-card); border: 1px solid var(--ui-line);
+  font-size: 12.5px; font-weight: 700; color: var(--ui-ink);
+}
+
+.city-cards { grid-template-columns: repeat(4, 1fr); }
+.city-cards .sky-card { cursor: default; }
+.city-cards .sky-card:hover { transform: none; border-color: var(--ui-line); }
+
+.city-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1px; margin: 4px 0 18px;
+  border: 1px solid var(--ui-line); border-radius: 14px;
+  overflow: hidden; background: var(--ui-line);
+}
+.city-strip div {
+  padding: 11px 14px; background: var(--ui-card);
+}
+.city-strip span {
+  display: block; margin-bottom: 3px;
+  font-size: 11px; color: var(--ui-ink3);
+}
+.city-strip b {
+  font-size: 15px; font-weight: 800; color: var(--ui-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.city-sec {
+  border: 1px solid var(--ui-line); border-radius: 16px;
+  background: var(--ui-card); padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--sky-card-shadow);
+}
+.city-sec h2 {
+  margin: 0 0 12px;
+  font-size: 17px; font-weight: 800; color: var(--ui-ink);
+}
+.city-sec > p {
+  margin: 0; font-size: 13.5px; line-height: 1.8; color: var(--ui-ink2);
+}
+
+.city-spots {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.city-spot {
+  padding: 13px 14px;
+  border: 1px solid var(--ui-line-soft, #eef0f4);
+  border-radius: 12px;
+  background: var(--ui-bg);
+}
+.city-spot b {
+  display: block; margin-bottom: 5px;
+  font-size: 14px; font-weight: 800; color: var(--ui-ink);
+}
+.city-spot p {
+  margin: 0 0 8px;
+  font-size: 12.5px; line-height: 1.7; color: var(--ui-ink2);
+}
+.city-spot span {
+  display: block;
+  font-size: 11px; color: var(--ui-ink3);
+}
+
+.city-two {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+}
+.city-two .city-sec { margin-bottom: 0; }
+
+.city-days { display: grid; gap: 8px; }
+.city-day {
+  display: grid; grid-template-columns: 92px 1fr auto auto;
+  gap: 12px; align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--ui-line-soft, #eef0f4);
+  border-radius: 10px;
+  font-size: 12.5px; color: var(--ui-ink2);
+}
+.city-day b { color: var(--ui-ink); font-weight: 700; }
+.city-day em {
+  font-style: normal; font-variant-numeric: tabular-nums;
+  color: var(--ui-ink3);
+}
+.city-day .city-day-val { font-weight: 800; color: var(--ui-ink); }
+
+.city-faq details {
+  padding: 11px 2px;
+  border-top: 1px solid var(--ui-line-soft, #eef0f4);
+}
+.city-faq details:first-of-type { border-top: 0; padding-top: 0; }
+.city-faq summary {
+  cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--ui-ink);
+  list-style: none;
+}
+.city-faq summary::-webkit-details-marker { display: none; }
+.city-faq summary::before {
+  content: "＋"; margin-right: 7px; color: var(--ui-ink3); font-weight: 400;
+}
+.city-faq details[open] summary::before { content: "－"; }
+.city-faq p {
+  margin: 7px 0 0 18px;
+  font-size: 13px; line-height: 1.8; color: var(--ui-ink2);
+}
+
+.city-more {
+  margin: 18px 0 0;
+  font-size: 12.5px; line-height: 2; color: var(--ui-ink3);
+}
+.city-more a {
+  color: var(--ui-ink2); text-decoration: none;
+  margin-right: 10px;
+}
+.city-more a:hover { color: var(--ui-ac); }
+
+/* 城市目录 */
+.city-index-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.city-index-card {
+  display: block; padding: 14px 15px;
+  border: 1px solid var(--ui-line); border-radius: 13px;
+  background: var(--ui-card); color: inherit; text-decoration: none;
+  transition: border-color .15s, transform .15s;
+}
+.city-index-card:hover { border-color: var(--ui-ac); transform: translateY(-1px); }
+.city-index-card b { display: block; margin-bottom: 4px; font-size: 15px; }
+.city-index-card p {
+  margin: 0 0 6px; font-size: 12px; line-height: 1.65; color: var(--ui-ink2);
+}
+.city-index-card span { font-size: 10.5px; color: var(--ui-ink3); }
+
+/* 首页的城市入口 */
+.sky-city-links {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.sky-city-links a {
+  padding: 5px 11px;
+  border: 1px solid var(--ui-line); border-radius: 999px;
+  background: var(--ui-bg); color: var(--ui-ink2);
+  font-size: 12px; text-decoration: none;
+}
+.sky-city-links a:hover { border-color: var(--ui-ac); color: var(--ui-ac); }
+
+@media (max-width: 760px) {
+  .city-cards { grid-template-columns: repeat(2, 1fr); }
+  .city-strip { grid-template-columns: repeat(2, 1fr); }
+  .city-spots { grid-template-columns: 1fr; }
+  .city-two { grid-template-columns: 1fr; }
+  .city-index-grid { grid-template-columns: 1fr; }
+  .city-day { grid-template-columns: 76px 1fr auto; }
+  .city-day .city-day-val { grid-column: 2 / -1; }
+  .city-hero h1 { font-size: 26px; }
+}

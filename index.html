@@ -21,17 +21,17 @@
 {"@context":"https://schema.org","@type":"WebSite","name":"火烧云","alternateName":"Sky","url":"https://sky.netcn.org/","description":"汇总六个数值模式与集合预报，给出今晚晚霞、朝霞、星空、月亮的观测概率。","inLanguage":"zh-CN"}
 </script>
 <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
-<link rel="stylesheet" href="assets/css/sky.css?v=8">
+<link rel="stylesheet" href="assets/css/sky.css?v=9">
 <link rel="stylesheet" href="/shell/netcn-shell.css?v=20261107c5">
 <link rel="stylesheet" href="/shell/netcn-ui.css?v=20261107c5">
 <script src="/shell/shell.js?v=20261107c5"></script>
 <script src="assets/vendor/leaflet/leaflet.js" defer></script>
-<link rel="modulepreload" href="assets/js/app.js?v=8">
-<link rel="modulepreload" href="assets/js/astro.js?v=8">
-<link rel="modulepreload" href="assets/js/sources.js?v=8">
-<link rel="modulepreload" href="assets/js/scoring.js?v=8">
-<link rel="modulepreload" href="assets/js/cities.js?v=8">
-<link rel="modulepreload" href="assets/js/live-map.js?v=8">
+<link rel="modulepreload" href="assets/js/app.js?v=9">
+<link rel="modulepreload" href="assets/js/astro.js?v=9">
+<link rel="modulepreload" href="assets/js/sources.js?v=9">
+<link rel="modulepreload" href="assets/js/scoring.js?v=9">
+<link rel="modulepreload" href="assets/js/cities.js?v=9">
+<link rel="modulepreload" href="assets/js/live-map.js?v=9">
 </head>
 <body>
 <nav class="nc-shell" aria-label="netcn 站点导航">
@@ -106,6 +106,7 @@
         <div class="sky-layers">
           <label><input type="checkbox" data-layer="glow" checked><span data-lt="glow">晚霞</span></label>
           <label><input type="checkbox" data-layer="radar" checked><span data-lt="radar">雷达</span></label>
+          <label><input type="checkbox" data-layer="cloud"><span data-lt="cloud">云量</span></label>
           <label><input type="checkbox" data-layer="storms" checked><span data-lt="storms">台风</span></label>
         </div>
       </div>
@@ -116,7 +117,13 @@
           <div class="lm-sw"></div>
           <div class="lm-scale"><span>0</span><span>50</span><span>100</span></div>
         </div>
+        <div class="lm-cloud" id="mapCloudCtl" hidden title="云量预报 · 白色越实云越厚">
+          <b data-lt="cloud">云量</b>
+          <button type="button" id="mapCloudPlay" aria-label="回放未来 24 小时">▶</button>
+          <span id="mapCloudTime">—</span>
+        </div>
         <div class="lm-radar" id="mapRadarCtl" hidden>
+          <b data-lt="radar">雷达</b>
           <button type="button" id="mapRadarPlay" aria-label="回放近 2 小时">▶</button>
           <span id="mapRadarTime">—</span>
         </div>
@@ -172,6 +179,27 @@
     <div id="days" class="sky-days"></div>
   </section>
 
+  <section class="sky-panel" aria-labelledby="cityIdxTitle">
+    <div class="sky-panel-head">
+      <h2 id="cityIdxTitle">按城市看今晚</h2>
+      <span class="sky-hint"><a class="sky-link" href="/city/">全部 12 个城市</a></span>
+    </div>
+    <div class="sky-city-links">
+      <a href="/city/shanghai/">上海</a>
+      <a href="/city/beijing/">北京</a>
+      <a href="/city/guangzhou/">广州</a>
+      <a href="/city/shenzhen/">深圳</a>
+      <a href="/city/hangzhou/">杭州</a>
+      <a href="/city/chengdu/">成都</a>
+      <a href="/city/xian/">西安</a>
+      <a href="/city/kunming/">昆明</a>
+      <a href="/city/lhasa/">拉萨</a>
+      <a href="/city/dunhuang/">敦煌</a>
+      <a href="/city/qingdao/">青岛</a>
+      <a href="/city/xiamen/">厦门</a>
+    </div>
+  </section>
+
   <section class="sky-note" aria-labelledby="noteTitle">
     <h2 id="noteTitle">数据与边界</h2>
     <p id="sourceNote">—</p>
@@ -200,6 +228,6 @@
   <p class="sky-dialog-note">光污染为城市级估算；郊区、山区实际条件通常更好。</p>
 </dialog>
 
-<script type="module" src="assets/js/app.js?v=8"></script>
+<script type="module" src="assets/js/app.js?v=9"></script>
 </body>
 </html>

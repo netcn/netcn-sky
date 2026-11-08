@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>深圳今晚有晚霞吗？晚霞、星空与月亮观测 · 火烧云</title>
+<meta name="description" content="深圳今晚晚霞、朝霞、星空、月亮实时观测概率。深圳东边是大鹏半岛，海岸线朝东，是华南少有的“下班就能到海边看日出”的城市。">
+<link rel="canonical" href="https://sky.netcn.org/city/shenzhen/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深圳今晚有晚霞吗？晚霞、星空与月亮观测 · 火烧云">
+<meta property="og:description" content="深圳今晚晚霞、朝霞、星空、月亮实时观测概率。深圳东边是大鹏半岛，海岸线朝东，是华南少有的“下班就能到海边看日出”的城市。">
+<meta property="og:url" content="https://sky.netcn.org/city/shenzhen/">
+<meta property="og:site_name" content="火烧云">
+<meta property="og:image" content="https://sky.netcn.org/assets/icon-192.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192">
+<link rel="stylesheet" href="/assets/css/sky.css?v=9">
+<link rel="stylesheet" href="/assets/css/city.css?v=1">
+<link rel="stylesheet" href="/shell/netcn-shell.css?v=20261107c5">
+<link rel="stylesheet" href="/shell/netcn-ui.css?v=20261107c5">
+<script src="/shell/shell.js?v=20261107c5"></script>
+<script type="application/ld+json">[{"@context": "https://schema.org", "@type": "WebPage", "name": "深圳今晚有晚霞吗？晚霞、星空与月亮观测 · 火烧云", "description": "深圳今晚晚霞、朝霞、星空、月亮实时观测概率。深圳东边是大鹏半岛，海岸线朝东，是华南少有的“下班就能到海边看日出”的城市。", "url": "https://sky.netcn.org/city/shenzhen/", "inLanguage": "zh-CN", "about": {"@type": "Place", "name": "深圳", "geo": {"@type": "GeoCoordinates", "latitude": 22.5431, "longitude": 114.0579}}, "isPartOf": {"@type": "WebSite", "name": "火烧云", "url": "https://sky.netcn.org/"}}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "深圳哪里看日出？", "acceptedAnswer": {"@type": "Answer", "text": "西涌、杨梅坑、大鹏所城海边；市区可去深圳湾公园，但东向视野被香港遮挡。"}}, {"@type": "Question", "name": "深圳市区能看星星吗？", "acceptedAnswer": {"@type": "Answer", "text": "只能看到少量亮星。银河需要到大鹏半岛，且避开满月。"}}]}]</script>
+</head>
+<body data-city="shenzhen">
+<nav class="nc-shell" aria-label="netcn 站点导航">
+  <a class="nc-brand" href="/" aria-label="返回首页"><span class="nc-mk" aria-hidden="true"></span><span class="nc-brand-txt">火烧云</span></a>
+  <nav class="nc-sw" aria-label="netcn 站点">
+    <a href="https://netcn.org/" data-nc-to="nav">导航</a>
+    <a href="https://ask.netcn.org/" data-nc-to="ask">科学问答</a>
+    <a href="https://quiz.netcn.org/" data-nc-to="quiz">头脑体操</a>
+    <a href="https://game.netcn.org/" data-nc-to="game">玩游戏</a>
+    <a href="https://sky.netcn.org/" data-nc-to="sky">火烧云</a>
+  </nav>
+  <div class="nc-search has-icon">
+    <span class="search-icon" aria-hidden="true">⌕</span>
+    <input id="citySearch" type="search" placeholder="搜城市，回车跳转" autocomplete="off" aria-label="搜索城市">
+  </div>
+  <div class="nc-tools">
+    <button class="nc-tool" id="ncTheme" type="button" aria-label="切换明暗">☾</button>
+  </div>
+</nav>
+
+<main class="sky-main city-main">
+  <nav class="city-crumb" aria-label="面包屑">
+    <a href="/">火烧云</a><span>/</span><a href="/city/">城市</a><span>/</span><span>深圳</span>
+  </nav>
+
+  <section class="sky-hero city-hero">
+    <div class="sky-kicker">
+      <span class="city-pill">📍 深圳</span>
+      <span class="sky-dot">·</span>
+      <span id="dateLabel">—</span>
+    </div>
+    <h1>深圳今晚有晚霞吗？</h1>
+    <p class="city-lede">深圳东边是大鹏半岛，海岸线朝东，是华南少有的“下班就能到海边看日出”的城市。</p>
+    <p class="sky-verdict" id="verdictText">正在读取今晚的观测条件…</p>
+    <div class="sky-meta">
+      <span id="updateTime">—</span>
+      <a class="sky-link" href="/?city=shenzhen">在地图上查看</a>
+    </div>
+  </section>
+
+  <section class="sky-cards city-cards" aria-label="今晚评分">
+    <article class="sky-card">
+      <div class="sky-card-label">火烧云</div>
+      <div class="sky-card-value"><span id="cGlow">—</span><small>%</small></div>
+      <div class="sky-card-sub" id="sGlow">正在计算</div>
+      <div class="sky-card-meter"><i id="bGlow" style="width:2%"></i></div>
+    </article>
+    <article class="sky-card">
+      <div class="sky-card-label">朝霞</div>
+      <div class="sky-card-value"><span id="cDawn">—</span><small>%</small></div>
+      <div class="sky-card-sub" id="sDawn">正在计算</div>
+      <div class="sky-card-meter"><i id="bDawn" style="width:2%"></i></div>
+    </article>
+    <article class="sky-card">
+      <div class="sky-card-label">星空</div>
+      <div class="sky-card-value"><span id="cStar">—</span></div>
+      <div class="sky-card-sub" id="sStar">正在计算</div>
+      <div class="sky-card-meter"><i id="bStar" style="width:2%"></i></div>
+    </article>
+    <article class="sky-card">
+      <div class="sky-card-label">月亮</div>
+      <div class="sky-card-value"><span id="cMoon">—</span></div>
+      <div class="sky-card-sub" id="sMoon">正在计算</div>
+      <div class="sky-card-meter"><i id="bMoon" style="width:2%"></i></div>
+    </article>
+  </section>
+
+  <section class="city-strip" aria-label="今晚时间">
+    <div><span>日落</span><b id="cSunset">—</b></div>
+    <div><span>蓝调时刻</span><b id="cBlue">—</b></div>
+    <div><span>日出</span><b id="cSunrise">—</b></div>
+    <div><span>现在云量</span><b id="cCloud">—</b></div>
+  </section>
+
+  <section class="city-sec">
+    <h2>去哪儿看</h2>
+    <div class="city-spots"><article class="city-spot"><b>西涌天文台</b><p>海边天文台，东南向无遮挡，有公共观测活动。</p><span>约 60 公里 · Bortle 4</span></article><article class="city-spot"><b>杨梅坑</b><p>东向海岸，日出和朝霞机位，交通方便。</p><span>约 55 公里 · Bortle 5</span></article><article class="city-spot"><b>梧桐山</b><p>市区最高峰，登顶可看全城灯光和西向晚霞。</p><span>约 15 公里 · Bortle 6</span></article></div>
+  </section>
+
+  <div class="city-two">
+    <section class="city-sec">
+      <h2>光污染与方向</h2>
+      <p>市区 Bortle 8；大鹏半岛 B4–5。看星优先西涌、东涌，避开节假日灯光。</p>
+    </section>
+    <section class="city-sec">
+      <h2>季节与天气</h2>
+      <p>10–12 月干燥少云；5–9 月台风季晚霞多，但云移动快，要盯雷达。</p>
+    </section>
+  </div>
+
+  <section class="city-sec">
+    <h2>最近三天</h2>
+    <div class="city-days" id="cDays">
+      <div class="city-day"><b>正在读取</b><span>—</span><em>—</em><span class="city-day-val">—</span></div>
+    </div>
+  </section>
+
+  <section class="city-sec city-faq">
+    <h2>常见问题</h2>
+    <details><summary>深圳哪里看日出？</summary><p>西涌、杨梅坑、大鹏所城海边；市区可去深圳湾公园，但东向视野被香港遮挡。</p></details><details><summary>深圳市区能看星星吗？</summary><p>只能看到少量亮星。银河需要到大鹏半岛，且避开满月。</p></details>
+  </section>
+
+  <p class="city-more">其他城市：<a href="/city/shanghai/">上海</a>　<a href="/city/beijing/">北京</a>　<a href="/city/guangzhou/">广州</a>　<a href="/city/hangzhou/">杭州</a>　<a href="/city/chengdu/">成都</a>　<a href="/city/xian/">西安</a>　<a href="/city/kunming/">昆明</a>　<a href="/city/lhasa/">拉萨</a>　<a href="/city/dunhuang/">敦煌</a>　<a href="/city/qingdao/">青岛</a>　<a href="/city/xiamen/">厦门</a></p>
+</main>
+
+<footer class="nc-foot">
+  <nav class="nc-foot-nav" aria-label="netcn 站点">
+    <a href="https://netcn.org/" data-nc-to="nav">导航</a>
+    <a href="https://ask.netcn.org/" data-nc-to="ask">科学问答</a>
+    <a href="https://quiz.netcn.org/" data-nc-to="quiz">头脑体操</a>
+    <a href="https://game.netcn.org/" data-nc-to="game">玩游戏</a>
+    <a href="https://sky.netcn.org/" data-nc-to="sky">火烧云</a>
+  </nav>
+  <span class="nc-foot-note">© 2011–2026 netcn.org</span>
+  <span class="nc-foot-site">晚霞 · 朝霞 · 星空 · 月亮 · 流星雨　数据仅供参考</span>
+</footer>
+<script type="module" src="/assets/js/city-page.js?v=1"></script>
+</body>
+</html>

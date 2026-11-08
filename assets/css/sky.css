@@ -353,6 +353,23 @@ html.dark .sky-mapbar .sky-seg button[aria-pressed="true"] { background: #242c3a
   color: rgba(255, 255, 255, .6); font-variant-numeric: tabular-nums;
 }
 
+.lm-cloud {
+  position: absolute; left: 10px; bottom: 46px; z-index: 500;
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 10px 5px 5px; border-radius: 999px;
+  background: rgba(20, 26, 38, .78); color: #fff;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.lm-cloud[hidden] { display: none; }
+.lm-cloud button {
+  width: 24px; height: 24px; border: 0; border-radius: 50%;
+  background: #5b7fa8; color: #fff; font-size: 9px;
+  cursor: pointer; display: grid; place-items: center; padding-left: 1px;
+}
+.lm-cloud button.playing { padding-left: 0; }
+.lm-cloud span { font-size: 11px; font-variant-numeric: tabular-nums; }
+.lm-cloud b, .lm-radar b { font-size: 10.5px; font-weight: 600; opacity: .72; }
+
 .lm-radar {
   position: absolute; left: 10px; bottom: 10px; z-index: 500;
   display: flex; align-items: center; gap: 7px;
@@ -458,6 +475,7 @@ html.dark .leaflet-control-attribution a { color: #c8d2e2 !important; }
 .sky-storm-list { display: grid; gap: 8px; }
 .sky-storm { display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border: 1px solid var(--ui-line); border-radius: 10px; }
 .sky-storm-name { font-size: 13px; font-weight: 800; color: var(--ui-ink); }
+.sky-storm-move { margin-top: 3px; font-size: 11.5px; color: var(--ui-ink2); }
 .sky-storm-meta { font-size: 11.5px; color: var(--ui-ink3); line-height: 1.55; }
 .sky-storm .sky-link { align-self: flex-start; margin-top: 2px; }
 .sky-storm-src { margin: 8px 0 0; font-size: 11px; color: var(--ui-ink3); }
@@ -478,6 +496,15 @@ html.dark .leaflet-control-attribution a { color: #c8d2e2 !important; }
   .lm-legend { padding: 6px 8px 7px; }
   .lm-sw i { width: 22px; }
 }
+
+.sky-city-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.sky-city-links a {
+  padding: 6px 12px;
+  border: 1px solid var(--ui-line); border-radius: 999px;
+  background: var(--ui-bg); color: var(--ui-ink2);
+  font-size: 12.5px; text-decoration: none;
+}
+.sky-city-links a:hover { border-color: var(--ui-ac); color: var(--ui-ac); }
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 980px) {
