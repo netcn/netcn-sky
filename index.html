@@ -21,17 +21,17 @@
 {"@context":"https://schema.org","@type":"WebSite","name":"火烧云","alternateName":"Sky","url":"https://sky.netcn.org/","description":"汇总六个数值模式与集合预报，给出今晚晚霞、朝霞、星空、月亮的观测概率。","inLanguage":"zh-CN"}
 </script>
 <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
-<link rel="stylesheet" href="assets/css/sky.css?v=11">
+<link rel="stylesheet" href="assets/css/sky.css?v=12">
 <link rel="stylesheet" href="/shell/netcn-shell.css?v=20261107c6">
 <link rel="stylesheet" href="/shell/netcn-ui.css?v=20261107c6">
 <script src="/shell/shell.js?v=20261107c6"></script>
 <script src="assets/vendor/leaflet/leaflet.js" defer></script>
-<link rel="modulepreload" href="assets/js/app.js?v=11">
-<link rel="modulepreload" href="assets/js/astro.js?v=11">
-<link rel="modulepreload" href="assets/js/sources.js?v=11">
-<link rel="modulepreload" href="assets/js/scoring.js?v=11">
-<link rel="modulepreload" href="assets/js/cities.js?v=11">
-<link rel="modulepreload" href="assets/js/live-map.js?v=11">
+<link rel="modulepreload" href="assets/js/app.js?v=12">
+<link rel="modulepreload" href="assets/js/astro.js?v=12">
+<link rel="modulepreload" href="assets/js/sources.js?v=12">
+<link rel="modulepreload" href="assets/js/scoring.js?v=12">
+<link rel="modulepreload" href="assets/js/cities.js?v=12">
+<link rel="modulepreload" href="assets/js/live-map.js?v=12">
 </head>
 <body>
 <nav class="nc-shell" aria-label="netcn 站点导航">
@@ -136,7 +136,7 @@
   <section class="sky-panel" aria-labelledby="tlTitle">
     <div class="sky-panel-head">
       <h2 id="tlTitle">今晚时间轴</h2>
-      <span class="sky-hint" id="tlHint">柱子是云量，越低越通透</span>
+      <span class="sky-hint" id="tlHint">柱高是云量，颜色随温度变化</span>
     </div>
     <div id="timeline" class="sky-timeline"></div>
   </section>
@@ -248,6 +248,6 @@
   <p class="sky-dialog-note">光污染为城市级估算；郊区、山区实际条件通常更好。</p>
 </dialog>
 
-<script type="module" src="assets/js/app.js?v=11"></script>
+<script type="module" src="assets/js/app.js?v=12"></script>
 </body>
 </html>

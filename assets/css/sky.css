@@ -138,26 +138,78 @@ html.dark [data-nc="sky"], [data-theme="dark"] [data-nc="sky"] {
 
 /* ---------- 时间轴 ---------- */
 .sky-bars {
-  position: relative;
+  position: relative; z-index: 1;
   display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px;
   align-items: end; height: 132px; padding: 4px 0 0;
   border-bottom: 1px solid var(--ui-line);
 }
 .sky-bars::before {
   content: ""; position: absolute; left: 0; right: 0; bottom: 50%;
-  border-top: 1px dashed var(--ui-line); pointer-events: none;
+  border-top: 1px dashed var(--ui-line-soft); pointer-events: none; z-index: 2;
 }
 .sky-bar { position: relative; height: 100%; display: flex; align-items: flex-end; }
 .sky-bar i {
   display: block; width: 100%; min-height: 3px; border-radius: 4px 4px 0 0;
   background: var(--ui-ink3);
+  transition: filter .16s;
 }
-.sky-bar.sun i { background: var(--ui-ac); }
+.sky-bar:hover i { filter: brightness(1.12) saturate(1.15); }
+/* 日落/日出：暖色描边高亮，保留温度底色 */
+.sky-bar.sun i {
+  box-shadow: inset 0 0 0 2px var(--ui-ac), 0 0 10px -2px var(--ui-ac);
+}
+/* 降水概率高：柱底紫色粗线 */
 .sky-bar.rain::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
-  border-radius: 2px; background: var(--sky-2); opacity: .75;
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+  border-radius: 2px; background: var(--sky-2); opacity: .9; z-index: 2;
+}
+/* 空气较差：整柱罩一层灰雾，饱和度下降 */
+.sky-bar.haze i { filter: grayscale(.52) opacity(.78); }
+.sky-bar.haze::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 100%;
+  background: linear-gradient(180deg, transparent 40%, rgba(120, 128, 142, .28));
+  pointer-events: none; z-index: 2; border-radius: 4px 4px 0 0;
 }
 .sky-bars-wrap { position: relative; }
+/* 逐小时温度渐变底带：让整块随时间变色 */
+.sky-temp-band {
+  position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+  border-radius: 10px 10px 0 0; pointer-events: none; z-index: 0;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+}
+/* 温度数值刻度（每 6 小时） */
+.sky-temp-marks { position: relative; height: 16px; margin-top: 2px; }
+.sky-temp-marks span {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font-size: 10px; font-weight: 700; color: var(--ui-ink3);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+/* 图例 */
+.sky-tl-legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px;
+  font-size: 11px; color: var(--ui-ink2);
+}
+.sky-tl-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sky-tl-legend i { display: block; width: 14px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+.sky-tl-legend .lg-temp {
+  width: 26px;
+  background: linear-gradient(90deg, hsl(222,68%,56%), hsl(178,68%,56%), hsl(44,68%,56%), hsl(8,68%,56%));
+}
+.sky-tl-legend .lg-cloud { background: var(--ui-ink3); height: 11px; width: 8px; }
+.sky-tl-legend .lg-rain { background: var(--sky-2); height: 3px; border-radius: 2px; }
+.sky-tl-legend .lg-haze { background: rgba(120,128,142,.5); }
+/* 夜间层：日落后到日出前压一层深靛蓝，让昼夜分段一眼可辨 */
+.sky-night-band {
+  position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+  border-radius: 10px 10px 0 0; pointer-events: none; z-index: 0;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+}
+.sky-bar.night i { box-shadow: inset 0 0 0 1px rgba(30, 44, 92, .22); }
+.sky-tl-legend .lg-night { background: rgba(24, 34, 74, .55); }
+html.dark .sky-temp-band { opacity: .8; }
+html.dark .sky-night-band { opacity: .55; }
 .sky-now { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--ui-ac); pointer-events: none; }
 .sky-now span { position: absolute; top: -3px; left: 3px; padding: 0 4px; border-radius: 4px; background: var(--ui-card); color: var(--ui-ac); font-size: 10px; font-weight: 700; white-space: nowrap; }
 .sky-axis { position: relative; height: 58px; margin-top: 7px; }

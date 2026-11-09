@@ -23,7 +23,13 @@ const T = {
     cityTitle: "选择城市", filterPh: "输入城市名，如 上海、敦煌",
     refresh: "刷新", geo: "用我的位置", updated: "更新于", updating: "正在更新…",
     now: "现在", sunset: "日落", blueHour: "蓝调", moonrise: "月出", sunrise: "日出",
-    tlHint: "柱子是云量，紫点是降水概率高",
+    tlHint: "柱高是云量，颜色随温度变化；紫线是降水，灰罩是空气较差",
+    tlCloud: "云量", tlRain: "降水",
+    tlLgTemp: "颜色＝当天温度（蓝最凉 → 橙最暖）",
+    tlLgCloud: "柱高＝云量，越低越通透",
+    tlLgRain: "紫线＝降水概率高",
+    tlLgHaze: "灰罩＝PM2.5 / 气溶胶偏高",
+    tlLgNight: "深蓝＝夜间时段",
     detail: "为什么是这个结果",
     models: "六个模式怎么看",
     mHint: "分歧越大，置信度越低",
@@ -56,7 +62,13 @@ const T = {
     cityTitle: "Choose a city", filterPh: "City name, e.g. Shanghai",
     refresh: "Refresh", geo: "Use my location", updated: "updated", updating: "updating…",
     now: "now", sunset: "Sunset", blueHour: "Blue hour", moonrise: "Moonrise", sunrise: "Sunrise",
-    tlHint: "Bars are cloud cover; a violet dash means rain is likely",
+    tlHint: "Bar height is cloud cover, colour tracks temperature; violet = rain, grey = poor air",
+    tlCloud: "Cloud", tlRain: "Rain",
+    tlLgTemp: "Colour = today's temperature (blue coolest → orange warmest)",
+    tlLgCloud: "Height = cloud cover; lower is clearer",
+    tlLgRain: "Violet dash = likely rain",
+    tlLgHaze: "Grey veil = high PM2.5 / aerosol",
+    tlLgNight: "Deep blue = night hours",
     detail: "Why this result",
     models: "How the six models see it",
     mHint: "More disagreement, lower confidence",
@@ -405,7 +417,21 @@ function confText(c) {
   return lang() === "en" ? `${t()["conf" + cap(c)]} model agreement` : `模式一致性${t()["conf" + cap(c)]}`;
 }
 
-/* ---------- 渲染：时间轴 ---------- */
+/* ---------- 渲染：时间轴 ----------
+   柱高 = 云量（越低越通透，沿用原有信息）；颜色 = 逐小时温度（冷蓝 → 暖橙）；
+   降水概率高的时段加紫线，PM2.5 偏高时加灰雾罩，日落/日出加暖色高亮。
+   底部一条温度渐变带让整块随时间「变色」，并配图例说明。 */
+/* 色带按「当天温差」铺满：即使全天只差 3℃，也能看出冷暖节奏。
+   蓝(222°) = 当天最凉，经过青绿/黄，橙红(8°) = 当天最暖。
+   真实温度仍显示在刻度与悬浮提示里，语义不丢。 */
+const HUE_COLD = 222, HUE_WARM = 8;
+function tempCss(k, light, alpha) {
+  const h = Math.round(HUE_COLD + (HUE_WARM - HUE_COLD) * Math.max(0, Math.min(1, k)));
+  const s = light ? 58 : 56;
+  const l = light ? 62 : 58;
+  return `hsla(${h},${s}%,${l}%,${alpha})`;
+}
+
 function renderTimeline() {
   const box = $("#timeline");
   $("#tlHint").textContent = t().tlHint;
@@ -413,18 +439,61 @@ function renderTimeline() {
   const ev = S.days[0];
   const dayStart = ev.date.getTime();
   const start = dayStart + 12 * 3600e3;
+  const ctx = S.data.ctx || {};
+  const air = S.data.air;
   const interps = S.data.models.map((m) => interpolator(S.data.times, m.cloud.total));
-  const precipAt = interpolator(S.data.ctx.times, S.data.ctx.precip);
-  const bars = [];
+  const precipAt = interpolator(ctx.times, ctx.precip);
+  const tempAt = interpolator(ctx.times, ctx.temp);
+  const pmAt = air ? interpolator(air.times, air.pm25) : () => null;
+  const aodAt = air ? interpolator(air.times, air.aod) : () => null;
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  const hours = [];
   for (let i = 0; i < 24; i++) {
     const at = new Date(start + i * 3600e3);
     const vals = interps.map((f) => f(at)).filter((v) => v != null);
     const cloud = vals.length ? vals.sort((a, b) => a - b)[vals.length >> 1] : 0;
-    const rain = (precipAt(at) || 0) >= 55;
-    const nearSun = [ev.sun.sunset, ev.sun.sunrise].some((d) => d && Math.abs(d - at) < 45 * 60000);
-    const h = Math.max(3, Math.min(100, cloud));
-    bars.push(`<div class="sky-bar ${nearSun ? "sun" : ""} ${rain ? "rain" : ""}" title="${fmtHM(at)} · ${round(cloud)}%"><i style="height:${h}%;opacity:${(0.18 + cloud / 100 * 0.62).toFixed(2)}"></i></div>`);
+    const precip = precipAt(at) || 0;
+    const temp = tempAt(at);
+    const pm = pmAt(at);
+    const aod = aodAt(at);
+    // 夜间：今日日落后 → 次日日出前（时间轴为今日 12:00 至次日 12:00）
+    const sunset = ev.sun.sunset ? ev.sun.sunset.getTime() : null;
+    const sunrise = ev.sunTomorrow && ev.sunTomorrow.sunrise ? ev.sunTomorrow.sunrise.getTime() : null;
+    const night = sunset != null && sunrise != null
+      ? at.getTime() >= sunset && at.getTime() < sunrise
+      : false;
+    hours.push({ at, cloud, precip, temp, pm, rain: precip >= 55,
+      haze: (pm != null && pm >= 75) || (aod != null && aod >= 0.55), night,
+      nearSun: [ev.sun.sunset, ev.sun.sunrise].some((d) => d && Math.abs(d - at) < 45 * 60000) });
   }
+  const temps = hours.map((x) => x.temp).filter((v) => v != null && Number.isFinite(v));
+  const tMin = temps.length ? Math.min(...temps) : 0;
+  const tMax = temps.length ? Math.max(...temps) : 1;
+  const tSpan = Math.max(1.2, tMax - tMin); // 温差过小时仍保留一点色彩跨度
+  const kOf = (c) => c == null ? 0.5 : (c - tMin) / tSpan;
+
+  const bars = [], bandStops = [], nightStops = [];
+  hours.forEach((m, i) => {
+    const k = kOf(m.temp);
+    const col = tempCss(k, !dark, 1);
+    const band = tempCss(k, !dark, dark ? 0.34 : 0.28);
+    bandStops.push(`${band} ${(i / 24 * 100).toFixed(2)}%, ${band} ${((i + 1) / 24 * 100).toFixed(2)}%`);
+    nightStops.push(`${m.night ? "rgba(24,34,74,.30)" : "rgba(24,34,74,0)"} ${(i / 24 * 100).toFixed(2)}%, ${m.night ? "rgba(24,34,74,.30)" : "rgba(24,34,74,0)"} ${((i + 1) / 24 * 100).toFixed(2)}%`);
+    const h = Math.max(3, Math.min(100, m.cloud));
+    const tip = `${fmtHM(m.at)} · ${t().tlCloud} ${round(m.cloud)}%`
+      + (m.temp != null ? ` · ${round(m.temp)}°C` : "")
+      + (m.precip > 0 ? ` · ${t().tlRain} ${round(m.precip)}%` : "")
+      + (m.pm != null ? ` · PM2.5 ${round(m.pm)}` : "");
+    bars.push(`<div class="sky-bar ${m.nearSun ? "sun" : ""} ${m.rain ? "rain" : ""} ${m.haze ? "haze" : ""} ${m.night ? "night" : ""}" title="${tip}"><i style="height:${h}%;background:${col};opacity:${(0.46 + m.cloud / 100 * 0.52).toFixed(2)}"></i></div>`);
+  });
+  // 温度渐变底带（24 段，随时间变色）
+  const band = `<div class="sky-temp-band" style="background:linear-gradient(90deg,${bandStops.join(",")})"></div>`
+    + `<div class="sky-night-band" style="background:linear-gradient(90deg,${nightStops.join(",")})"></div>`;
+  // 底部温度数值标注（每 6 小时一个）
+  const tMarks = [0, 6, 12, 18].map((i) => {
+    const m = hours[i];
+    return `<span style="left:${(i / 24 * 100 + 2).toFixed(2)}%">${m.temp == null ? "—" : round(m.temp) + "°"}</span>`;
+  }).join("");
   const ticks = [];
   const push = (date, label) => {
     if (!date) return;
@@ -445,7 +514,14 @@ function renderTimeline() {
   const now = Date.now();
   const nowK = (now - start) / (24 * 3600e3);
   const nowLine = nowK >= 0 && nowK <= 1 ? `<div class="sky-now" style="left:${(nowK * 100).toFixed(2)}%"><span>${t().now}</span></div>` : "";
-  box.innerHTML = `<div class="sky-bars-wrap"><div class="sky-bars">${bars.join("")}</div>${nowLine}</div><div class="sky-axis">${axis}</div>`;
+  const legend = `<div class="sky-tl-legend">
+    <span><i class="lg-temp"></i>${t().tlLgTemp}</span>
+    <span><i class="lg-cloud"></i>${t().tlLgCloud}</span>
+    <span><i class="lg-rain"></i>${t().tlLgRain}</span>
+    <span><i class="lg-haze"></i>${t().tlLgHaze}</span>
+    <span><i class="lg-night"></i>${t().tlLgNight}</span>
+  </div>`;
+  box.innerHTML = `<div class="sky-bars-wrap">${band}<div class="sky-bars">${bars.join("")}</div>${nowLine}<div class="sky-temp-marks">${tMarks}</div></div><div class="sky-axis">${axis}</div>${legend}`;
 }
 
 /* ---------- 渲染：因子解释 ---------- */
