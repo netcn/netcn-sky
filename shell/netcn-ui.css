@@ -283,7 +283,8 @@ button.btn-answer.hide-answer,.btn.btn-answer.hide-answer{background:#dc2626!imp
 .empty,.nc-foot{color:var(--ui-ink3)!important}
 .nc-shell .search-icon{color:var(--ui-ink3)!important}
 
-/* 四站胶囊固定宽度（站名固定中文，不随语言切换），顶栏其余槽位不位移 */
+/* 顶栏胶囊不参与伸缩；站名文案由 shell.js 的统一字典按 ncn:lang 重渲染
+   （2026-11-10 起中英双语，旧「站名固定中文」约定已废止） */
 .nc-sw{flex:0 0 auto}
 
 /* ---------- 统一的分区标题节奏 ---------- */

@@ -1,12 +1,12 @@
 {
-  "name": "火烧云 · 今晚晚霞、朝霞、星空、月亮观测指南",
+  "name": "火烧云 · Sky Watch | sky.netcn.org",
   "short_name": "火烧云",
-  "description": "汇总六个数值模式与集合预报，告诉你今晚值不值得出门看天。",
+  "description": "今晚值不值得出门看天 · Tonight's sunset, stars, moon and meteor outlook.",
   "lang": "zh-CN",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#10141c",
+  "background_color": "#fafbfc",
   "theme_color": "#d1432a",
   "icons": [
     { "src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" }

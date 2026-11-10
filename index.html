@@ -22,9 +22,9 @@
 </script>
 <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="assets/css/sky.css?v=12">
-<link rel="stylesheet" href="/shell/netcn-shell.css?v=20261107c6">
-<link rel="stylesheet" href="/shell/netcn-ui.css?v=20261107c6">
-<script src="/shell/shell.js?v=20261107c6"></script>
+<link rel="stylesheet" href="/shell/netcn-shell.css?v=20261110a1">
+<link rel="stylesheet" href="/shell/netcn-ui.css?v=20261110a1">
+<script src="/shell/shell.js?v=20261110a1"></script>
 <script src="assets/vendor/leaflet/leaflet.js" defer></script>
 <link rel="modulepreload" href="assets/js/app.js?v=12">
 <link rel="modulepreload" href="assets/js/astro.js?v=12">
@@ -94,7 +94,7 @@
   <section class="sky-panel" aria-labelledby="mapTitle">
     <div class="sky-panel-head">
       <h2 id="mapTitle">晚霞地图 · 你周围约 300 公里</h2>
-      <span class="sky-hint" id="mapHint">颜色越暖，指数越高</span>
+      <span class="sky-hint" id="mapHint" data-lt="hint">颜色越暖，指数越高</span>
     </div>
     <div class="sky-map-shell">
       <div class="sky-mapbar">
@@ -113,7 +113,7 @@
       <div id="skyMap" class="sky-map lm-map">
         <div class="sky-skeleton" style="height:320px"></div>
         <div class="lm-legend">
-          <span class="lm-legend-title">晚霞指数</span>
+          <span class="lm-legend-title" data-lt="glowTitle">晚霞指数</span>
           <div class="lm-sw"></div>
           <div class="lm-scale"><span>0</span><span>50</span><span>100</span></div>
         </div>
@@ -129,7 +129,7 @@
         </div>
         <button class="lm-stormchip" id="mapStormChip" type="button" hidden></button>
       </div>
-      <p class="sky-map-src">底图 Esri · 雷达 RainViewer · 晚霞 Open-Meteo（ECMWF / CMA / ICON）</p>
+      <p class="sky-map-src" data-lt="src">底图 Esri · 雷达 RainViewer · 晚霞 Open-Meteo（ECMWF / CMA / ICON）</p>
     </div>
   </section>
 

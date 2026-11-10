@@ -128,3 +128,86 @@
 
 @media (pointer:coarse){.nc-shell,.nc-inner{--nc-h:44px}.nc-mk{width:32px;height:32px}}
 @media (prefers-reduced-motion:reduce){.nc-shell *,.nc-inner *,.nc-foot *{transition:none!important}}
+
+/* ============================================================
+   移动端 App 壳（v20261110a1）
+   DOM 由 shell.js 统一注入 .nc-tabbar，五站共用同一份样式。
+   统一断点：≤768px 进入 App 模式；顶栏收成「品牌 + 搜索 + 工具」一行，
+   五站切换交给底部 Tab；桌面完全不受影响（.nc-tabbar 默认 display:none）。
+   设计 token 复用全站 --ui-*，与 netcn-ui.css 的纸感/深色态保持一致。
+   ============================================================ */
+.nc-tabbar{display:none}
+.nc-install{display:none}
+
+@media (max-width:768px){
+  /* 顶栏收成一行：胶囊导航交给底部 Tab，避免上下两层重复入口 */
+  .nc-shell .nc-sw{display:none}
+  .nc-shell{gap:6px;padding-top:6px;padding-bottom:6px}
+  .nc-brand{font-size:13px}
+  .nc-mk{width:26px;height:26px}
+  /* flex-basis:0 让搜索槽按剩余空间伸缩，保证品牌/搜索/工具挤进同一行 */
+  .nc-shell .nc-search{flex:1 1 0;min-width:0}
+  .nc-tools{gap:4px}
+  .nc-tools button{padding-left:6px;padding-right:6px}
+  .nc-search input{font-size:13px}
+  /* 页脚只保留版权与说明，五站链接由 Tab 承担 */
+  .nc-foot-nav{display:none}
+  .nc-foot{font-size:11px;gap:4px 10px}
+  .nc-foot-site{margin-left:0;text-align:left;flex:1 1 100%}
+
+  .nc-tabbar{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:110;
+    box-sizing:border-box;
+    background:var(--ui-card,#fff);
+    border-top:1px solid var(--ui-line,#e5e8ee);
+    padding:4px 5px calc(4px + env(safe-area-inset-bottom,0px));
+    box-shadow:0 -6px 22px rgba(16,24,40,.09);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  }
+  .nc-tabbar a{
+    flex:1 1 0;min-width:0;min-height:48px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    border-radius:9px;text-decoration:none;
+    color:var(--ui-ink3,#98a1b0);
+    font-size:10.5px;font-weight:750;line-height:1.2;white-space:nowrap;
+    transition:background .16s,color .16s,transform .1s;
+  }
+  .nc-tabbar a .nc-tab-ic{font-size:18px;line-height:1.15}
+  .nc-tabbar a[aria-current="page"]{
+    color:var(--ui-ac,#2563eb);
+    background:var(--ui-ac-soft,rgba(37,99,235,.08));
+  }
+  .nc-tabbar a:active{transform:scale(.94)}
+  /* 内容区为固定 Tab 留出空间（含全面屏底部安全区）。
+     用页脚 margin 兜底：game 内页的 family-bridge.css 会用 !important
+     把 body padding 清零，页脚这条同样 !important 且特异性更高，仍然生效。 */
+  body.nc-has-tabbar:not(:has(> .nc-foot)){padding-bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+  body.nc-has-tabbar > .nc-foot{
+    height:62px!important;overflow:hidden!important;
+    margin-bottom:calc(62px + env(safe-area-inset-bottom,0px))!important;
+  }
+
+  .nc-install{
+    display:flex;align-items:center;gap:8px;
+    position:fixed;left:10px;right:10px;z-index:111;
+    bottom:calc(70px + env(safe-area-inset-bottom,0px));
+    box-sizing:border-box;padding:9px 11px;border-radius:12px;
+    background:var(--ui-card,#fff);border:1px solid var(--ui-line,#e5e8ee);
+    box-shadow:var(--ui-shadow-up,0 12px 34px rgba(20,28,48,.16));
+    font-size:12px;color:var(--ui-ink2,#5c6577);
+  }
+  .nc-install .nc-install-tx{flex:1 1 auto;min-width:0}
+  .nc-install button{
+    flex:0 0 auto;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;
+    border-radius:999px;padding:5px 12px;border:1px solid var(--ui-line,#e5e8ee);
+    background:var(--ui-surface,#f4f6f8);color:var(--ui-ink2,#5c6577);
+  }
+  .nc-install .nc-install-go{background:var(--ui-ac,#2563eb);border-color:var(--ui-ac,#2563eb);color:#fff}
+  .nc-install .nc-install-no{padding:4px 9px;font-size:14px;line-height:1}
+}
+
+/* 已安装成 PWA（standalone）时，顶栏让出状态栏安全区 */
+@media (display-mode:standalone){
+  .nc-shell{padding-top:calc(6px + env(safe-area-inset-top,0px))}
+}
+@media (prefers-reduced-motion:reduce){.nc-tabbar a,.nc-install{transition:none!important}}

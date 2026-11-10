@@ -997,6 +997,34 @@ function renderStaticLabels() {
     const v = el.getAttribute(key);
     if (v != null && el.tagName !== "META") el.textContent = v;
   });
+  /* 地图图层 / 图例：live-map.js 的 T 字典是模块内私有，这里用同一份标签
+     渲染 [data-lt]，避免切 EN 后地图控件仍是中文。 */
+  const LT = {
+    zh: { sat: "卫星", street: "街道", dark: "深色", glow: "晚霞", radar: "雷达",
+      cloud: "云量", storms: "台风", glowTitle: "晚霞指数", radarTitle: "雷达降水",
+      src: "底图 Esri · 雷达 RainViewer · 晚霞 Open-Meteo（ECMWF / CMA / ICON）",
+      hint: "颜色越暖，指数越高", base: "底图", cloudCtl: "云量预报 · 白色越实云越厚",
+      playCloud: "回放未来 24 小时", playRadar: "回放近 2 小时" },
+    en: { sat: "Satellite", street: "Street", dark: "Dark", glow: "Glow", radar: "Radar",
+      cloud: "Cloud", storms: "Storms", glowTitle: "Glow index", radarTitle: "Radar",
+      src: "Basemap Esri · Radar RainViewer · Glow Open-Meteo (ECMWF / CMA / ICON)",
+      hint: "Warmer colours mean a higher index", base: "Basemap",
+      cloudCtl: "Cloud forecast · whiter means thicker cloud",
+      playCloud: "Replay next 24h", playRadar: "Replay last 2h" }
+  };
+  const ltm = lang() === "en" ? LT.en : LT.zh;
+  document.querySelectorAll("[data-lt]").forEach((el) => {
+    const k = el.getAttribute("data-lt");
+    if (ltm[k] != null && el.tagName !== "INPUT") el.textContent = ltm[k];
+  });
+  const seg = document.querySelector(".sky-seg");
+  if (seg) seg.setAttribute("aria-label", ltm.base);
+  const cc = document.getElementById("mapCloudCtl");
+  if (cc) cc.title = ltm.cloudCtl;
+  const cp = document.getElementById("mapCloudPlay");
+  if (cp) cp.setAttribute("aria-label", ltm.playCloud);
+  const rp = document.getElementById("mapRadarPlay");
+  if (rp) rp.setAttribute("aria-label", ltm.playRadar);
 }
 
 function render() {
