@@ -6,7 +6,7 @@
    - 台风：NASA EONET 最新记录位置
    地图按需初始化（进入视口才加载 Leaflet 实例与瓦片），不拖首屏。
    ============================================================ */
-import { fmtHM, parseLocal } from "./astro.js?v=22";
+import { fmtHM, parseLocal } from "./astro.js?v=23";
 
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
 /* 底图：Esri 卫星 / Esri 街道 / Esri 深色 / OSM 街道。
@@ -335,8 +335,11 @@ function mountBase(kind) {
   baseKind = kind;
   base = L.tileLayer(BASEMAPS[kind], { maxZoom: 16, attribution: "" }).addTo(map);
   let errs = 0;
+  let ok = 0;
+  base.on("tileload", () => { ok++; });
+  /* 只有「一张都没加载成功」才降级：偶发几个 404/超时不该把底图换掉。 */
   base.on("tileerror", () => {
-    if (++errs < 6) return;
+    if (++errs < 8 || ok > 0) return;
     const chain = BASE_CHAIN[kind] || [];
     if (!chain.length) return;
     const next = chain.shift();

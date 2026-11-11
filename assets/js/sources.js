@@ -6,7 +6,7 @@
    ④ 挪威气象局 met.no（总云量交叉校验）
    全部免密钥、支持浏览器直连；20 分钟本地缓存。
    ============================================================ */
-import { parseLocal } from "./astro.js?v=22";
+import { parseLocal } from "./astro.js?v=23";
 
 const API = "https://api.open-meteo.com/v1/forecast";
 const ENS = "https://ensemble-api.open-meteo.com/v1/ensemble";
