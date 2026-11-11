@@ -6,7 +6,7 @@
    - 台风：NASA EONET 最新记录位置
    地图按需初始化（进入视口才加载 Leaflet 实例与瓦片），不拖首屏。
    ============================================================ */
-import { fmtHM, parseLocal } from "./astro.js?v=21";
+import { fmtHM, parseLocal } from "./astro.js?v=22";
 
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
 /* 底图：Esri 卫星 / Esri 街道 / Esri 深色 / OSM 街道。
@@ -262,9 +262,15 @@ function lang() { return opts && opts.lang === "en" ? "en" : "zh"; }
 function txt() { return T[lang()]; }
 
 /* ---------- 初始化 ---------- */
-function init(el) {
+function init(el, tries, onReady) {
   if (map) return;
-  if (!window.L) { setMapLoading(T[lang()].empty); return; }
+  /* Leaflet 是 defer 加载的，用户滚得快时可能还没就绪。
+     旧版这里直接放弃，结果是「地图永远不出来」；改成短暂重试。 */
+  if (!window.L) {
+    if ((tries || 0) < 24) { setTimeout(() => init(el, (tries || 0) + 1), 250); return; }
+    setMapLoading(T[lang()].empty);
+    return;
+  }
   map = L.map(el, {
     center: [opts.city.lat, opts.city.lon],
     zoom: 7,
@@ -312,6 +318,8 @@ function init(el) {
     if (cplay) cplay.onclick = toggleCloudPlay;
   }
   bindStormChip();
+  /* 延后一拍，等 init 完全执行完再做 invalidateSize / 首次绘制 */
+  if (typeof onReady === "function") setTimeout(onReady, 0);
   map.on("moveend", checkStormChip);
   map.on("zoomend", () => {
     if (!cityGroup) return;
@@ -366,10 +374,13 @@ export function updateLiveMap(o) {
       if (!entries.some((e) => e.isIntersecting)) return;
       observer.disconnect();
       observer = null;
-      init(el);
-      map.invalidateSize();
-      apply();
-      if (radarOn) ensureRadar().then((m) => showRadar(m.frames.length - 1)).catch(() => {});
+      /* init 可能因为 Leaflet 还没就绪而延后，所有后续动作放进回调里，
+         否则 map 为空时 invalidateSize 会直接抛错。 */
+      init(el, 0, () => {
+        map.invalidateSize();
+        apply();
+        if (radarOn) ensureRadar().then((m) => showRadar(m.frames.length - 1)).catch(() => {});
+      });
     }, { rootMargin: "400px" });
     observer.observe(el);
   }
