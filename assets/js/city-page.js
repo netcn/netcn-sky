@@ -9,6 +9,15 @@ import { fmtHM, phaseName } from "./astro.js";
 const $ = (s) => document.querySelector(s);
 const city = CITIES.find((c) => c.id === document.body.dataset.city);
 
+/* 全站时间基准是北京时间（UTC+8）：评分、日落、日期标签都必须按 UTC+8 判定，
+   否则海外用户会看到「标题写 11 日、卡片却是 12 日」这种错位。
+   这里不用浏览器本地时区，统一把瞬时加 8 小时后读 UTC 字段。 */
+const BJ = 8 * 3600e3;
+const bjDate = (d) => new Date(d.getTime() + BJ);
+const bjDayIndex = (d) => Math.floor((d.getTime() + BJ) / 86400000);
+/* 北京时间以东经 120° 为基准；每差 1° 相当于 4 分钟太阳时 */
+const solarOffsetMin = (lon) => Math.round((120 - lon) * 4);
+
 const I18N = {
   zh: {
     conf: (c) => c === "high" ? "高" : c === "mid" ? "中" : "低",
@@ -25,8 +34,12 @@ const I18N = {
       meh: "云和光都差一点，属于可看可不看的一晚。"
     },
     title: ["今晚值得出门", "今晚可以赌一把", "今晚更适合看星", "今晚希望不大"],
-    date: (d) => `${d.getMonth() + 1} 月 ${d.getDate()} 日 · 周${"日一二三四五六"[d.getDay()]}`,
-    updated: (t) => `更新于 ${t}`,
+    date: (d) => {
+      const b = bjDate(d);
+      return `${b.getUTCMonth() + 1} 月 ${b.getUTCDate()} 日 · 周${"日一二三四五六"[b.getUTCDay()]}`;
+    },
+    updated: (t) => `更新于 ${t}（北京时间）`,
+    tzNote: (dur) => `当地太阳时比北京时间晚约 ${dur}；下方日落与蓝调时刻均按北京时间（UTC+8）显示。`,
     fail: "数据读取失败，请稍后刷新；预报本身仍可参考下方的观测建议。",
     loading: "正在读取今晚的观测条件…",
     day: (k) => k === 0 ? "今晚" : k === 1 ? "明晚" : "后天",
@@ -49,8 +62,10 @@ const I18N = {
       meh: "Cloud and light are both slightly off — an optional night out."
     },
     title: ["Worth going out tonight", "Worth a gamble tonight", "Better for stars tonight", "Not much of a show tonight"],
-    date: (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", weekday: "short" }),
-    updated: (t) => `Updated ${t}`,
+    date: (d) => bjDate(d).toLocaleDateString("en-US",
+      { month: "short", day: "numeric", weekday: "short", timeZone: "UTC" }),
+    updated: (t) => `Updated ${t} (China Standard Time)`,
+    tzNote: (dur) => `Local solar time runs about ${dur} behind Beijing time; sunset and blue hour below are shown in China Standard Time (UTC+8).`,
     fail: "Could not load live data — please refresh later. The observing advice below is still useful.",
     loading: "Loading tonight's conditions…",
     day: (k) => k === 0 ? "Tonight" : k === 1 ? "Tomorrow" : "Day after",
@@ -123,11 +138,12 @@ function renderDays(data) {
   if (!box || !city) return;
   const t = L();
   const now = new Date();
-  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  /* 「今晚/明晚/后天」按北京时间的自然日算，不能用浏览器本地零点 */
+  const base = bjDayIndex(now);
   box.innerHTML = [0, 1, 2].map((i) => {
     const d = new Date(now.getTime() + i * 86400000);
     const ev = evaluate(data, city, d);
-    const k = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - base) / 86400000);
+    const k = bjDayIndex(d) - base;
     return `<div class="city-day">
       <b>${t.day(k)}</b>
       <span>${t.sunset} ${fmtHM(ev.sun.sunset)}</span>
@@ -135,6 +151,30 @@ function renderDays(data) {
       <span class="city-day-val">${t.star} ${Math.round(ev.star.score)}${t.starUnit}</span>
     </div>`;
   }).join("");
+}
+
+/* 乌鲁木齐（东经 87.6°）等地官方用北京时间，但太阳时比北京晚 2 小时以上：
+   夏天日落显示 21:50 常被误认为数据错误，这里给一句说明。
+   偏移小于 45 分钟的东部城市不显示，避免噪声。 */
+function renderTzNote() {
+  if (!city) return;
+  const strip = document.querySelector(".city-strip");
+  if (!strip) return;
+  const off = Math.abs(solarOffsetMin(city.lon));
+  let el = document.querySelector("#cTzNote");
+  if (off < 45) { if (el) el.remove(); return; }
+  if (!el) {
+    el = document.createElement("p");
+    el.id = "cTzNote";
+    el.className = "sky-hint";
+    el.style.margin = "-10px 0 14px";
+    strip.insertAdjacentElement("afterend", el);
+  }
+  const h = Math.floor(off / 60), m = off % 60;
+  const dur = LANG === "en"
+    ? [h ? h + (h > 1 ? " hours" : " hour") : "", m ? m + " min" : ""].filter(Boolean).join(" ")
+    : [h ? h + " 小时" : "", m ? m + " 分" : ""].filter(Boolean).join(" ");
+  el.textContent = L().tzNote(dur);
 }
 
 function renderVerdict(ev) {
@@ -155,6 +195,7 @@ function renderAll() {
   renderCards(STATE.ev);
   renderStrip(STATE.ev, STATE.data);
   renderDays(STATE.data);
+  renderTzNote();
 }
 
 function switchLang(l) {

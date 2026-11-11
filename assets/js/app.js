@@ -22,8 +22,11 @@ const T = {
     prob: "概率", index: "指数",
     cityTitle: "选择城市", filterPh: "输入城市名，如 上海、敦煌",
     refresh: "刷新", geo: "用我的位置", updated: "更新于", updating: "正在更新…",
+    /* 全站只用北京时间：所有数据源（UTC / 挪威 / 美国 / 日本）都已换算到 UTC+8，
+       页面明确标注，海外用户不会把 17:03 误当成自己的本地时间。 */
+    tzTag: "（北京时间）", tzName: "北京时间（UTC+8）", cachedTag: "（缓存）",
     now: "现在", sunset: "日落", blueHour: "蓝调", moonrise: "月出", sunrise: "日出",
-    tlHint: "柱高是云量，颜色随温度变化；紫线是降水，灰罩是空气较差",
+    tlHint: "柱高是云量，颜色随温度变化；紫线是降水，灰罩是空气较差（时间为北京时间）",
     tlCloud: "云量", tlRain: "降水",
     tlLgTemp: "颜色＝当天温度（蓝最凉 → 橙最暖）",
     tlLgCloud: "柱高＝云量，越低越通透",
@@ -45,7 +48,7 @@ const T = {
     ensNote: (n, k, p) => `${n} 个集合成员中 ${k} 个达到“值得出门”的门槛，对应概率 ${p}%。`,
     ensNone: "集合预报暂不可用，本次只用 6 个数值模式的共识。",
     tableNote: "评分按日落时刻的云层结构、能见度、气溶胶、降水与露点差计算；看法以 60 分为界。",
-    srcNote: (t) => `数据：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> 六个数值模式（ECMWF / CMA / ICON / GFS / JMA / UKMO）、ECMWF 50 个集合成员、空气质量气溶胶；<a href="https://www.met.no/" target="_blank" rel="noopener">挪威气象局 met.no</a> 做总云量交叉校验。更新于 ${t}。预报存在误差，概率仅供参考；光污染为城市级估算，郊区与山区通常更好。`,
+    srcNote: (t) => `数据：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> 六个数值模式（ECMWF / CMA / ICON / GFS / JMA / UKMO）、ECMWF 50 个集合成员、空气质量气溶胶；<a href="https://www.met.no/" target="_blank" rel="noopener">挪威气象局 met.no</a> 做总云量交叉校验。更新于 ${t}。预报存在误差，概率仅供参考；光污染为城市级估算，郊区与山区通常更好。所有时间均为北京时间（UTC+8）——各数据源返回的 UTC、当地时或模式本地时都已统一换算。`,
     error: "数据没取到，可能是网络或接口限流。稍等一下再试。",
     retry: "重试",
     bortleNote: "市区光污染较强，银河基本看不到",
@@ -61,8 +64,9 @@ const T = {
     prob: "chance", index: "score",
     cityTitle: "Choose a city", filterPh: "City name, e.g. Shanghai",
     refresh: "Refresh", geo: "Use my location", updated: "updated", updating: "updating…",
+    tzTag: " (China Standard Time)", tzName: "China Standard Time (UTC+8)", cachedTag: " (cached)",
     now: "now", sunset: "Sunset", blueHour: "Blue hour", moonrise: "Moonrise", sunrise: "Sunrise",
-    tlHint: "Bar height is cloud cover, colour tracks temperature; violet = rain, grey = poor air",
+    tlHint: "Bar height is cloud cover, colour tracks temperature; violet = rain, grey = poor air (times in CST / UTC+8)",
     tlCloud: "Cloud", tlRain: "Rain",
     tlLgTemp: "Colour = today's temperature (blue coolest → orange warmest)",
     tlLgCloud: "Height = cloud cover; lower is clearer",
@@ -84,7 +88,7 @@ const T = {
     ensNote: (n, k, p) => `${k} of ${n} ensemble members clear the “worth going” bar, i.e. ${p}%.`,
     ensNone: "Ensemble data unavailable; using the six-model consensus only.",
     tableNote: "Score uses cloud structure at sunset, visibility, aerosol, rain chance and dew-point spread; 60 is the go/no-go line.",
-    srcNote: (t) => `Data: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> six models (ECMWF / CMA / ICON / GFS / JMA / UKMO), 50 ECMWF ensemble members, air-quality aerosol; <a href="https://www.met.no/" target="_blank" rel="noopener">met.no</a> for a total-cloud cross-check. Updated ${t}. Forecasts are uncertain and probabilities are indicative; light pollution is a city-level estimate.`,
+    srcNote: (t) => `Data: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> six models (ECMWF / CMA / ICON / GFS / JMA / UKMO), 50 ECMWF ensemble members, air-quality aerosol; <a href="https://www.met.no/" target="_blank" rel="noopener">met.no</a> for a total-cloud cross-check. Updated ${t}. Forecasts are uncertain and probabilities are indicative; light pollution is a city-level estimate. All times are China Standard Time (UTC+8) — UTC, local and model-native times from every source are converted to this one basis.`,
     error: "Could not load the data — network or rate limit. Try again in a moment.",
     retry: "Retry",
     bortleNote: "city light pollution is strong; the Milky Way is not visible",
@@ -333,7 +337,9 @@ function renderHero() {
   $("#verdictTitle").textContent = v.title;
   $("#verdictText").textContent = v.text;
   const upd = S.data && S.data.updated ? new Date(S.data.updated) : null;
-  $("#updateTime").textContent = upd ? `${t().updated} ${fmtHM(upd, 8)}${S.data.cached ? "（缓存）" : ""}` : "—";
+  $("#updateTime").textContent = upd
+    ? `${t().updated} ${fmtHM(upd, 8)}${t().tzTag}${S.data.cached ? t().cachedTag : ""}`
+    : "—";
   const rb = $("#refreshBtn");
   if (rb) { rb.textContent = S.refreshing ? t().updating : t().refresh; rb.disabled = S.refreshing; }
   const gb = $("#geoBtn");
