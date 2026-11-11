@@ -6,7 +6,7 @@
    - 台风：NASA EONET 最新记录位置
    地图按需初始化（进入视口才加载 Leaflet 实例与瓦片），不拖首屏。
    ============================================================ */
-import { fmtHM, parseLocal } from "./astro.js";
+import { fmtHM, parseLocal } from "./astro.js?v=17";
 
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
 const BASEMAPS = {
@@ -20,15 +20,15 @@ const RADAR_TTL = 5 * 60 * 1000;
 /* 晚霞色带：低分区接近透明，40 分起米黄，60 分橙，80 分以上红。
    与截图程序的黄→橙→红一致，比旧版更暖、覆盖更实。 */
 const GLOW_STOPS = [
-  [0, [90, 120, 150, 0]],
-  [10, [96, 130, 158, 74]],
-  [22, [122, 148, 150, 124]],
-  [34, [188, 176, 116, 162]],
-  [46, [232, 196, 92, 188]],
-  [58, [246, 168, 62, 212]],
-  [72, [246, 126, 42, 230]],
-  [86, [228, 62, 48, 242]],
-  [100, [178, 20, 86, 248]]
+  [0, [120, 140, 160, 0]],
+  [12, [168, 186, 150, 34]],
+  [24, [222, 212, 120, 80]],
+  [36, [240, 200, 92, 116]],
+  [48, [246, 180, 62, 148]],
+  [60, [246, 150, 46, 176]],
+  [72, [242, 110, 40, 198]],
+  [86, [224, 58, 46, 218]],
+  [100, [170, 20, 84, 232]]
 ];
 
 const CLOUD_STOPS = [
@@ -96,37 +96,77 @@ function viewBoundsOf(points) {
   const { lats, lons } = meta(points);
   return [[lats[0], lons[0]], [lats[lats.length - 1], lons[lons.length - 1]]];
 }
-function paint(points, values, colorFn, size = 384, feather = 0.16) {
+/* ---------- 平滑场：双三次插值 + 分形噪声 + 等值线 ----------
+   旧版是双线性 + 高斯模糊，9×9 拉到整幅只能得到「一团糊」。
+   这里改成：Catmull-Rom 双三次（无折线、无菱形格）→ 叠 3 个八度的值噪声
+   （模拟云层的细碎结构）→ 每 20 分画一条极淡的等值线。
+   观感接近 SunsetWx / 火烧云分析那种「云图式」渐变，而不是色块。 */
+function hash2(x, y) {
+  let h = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+}
+function vnoise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y);
+  const xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash2(xi, yi), b = hash2(xi + 1, yi);
+  const c = hash2(xi, yi + 1), d = hash2(xi + 1, yi + 1);
+  return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+}
+function fbm(x, y) {
+  return 0.56 * vnoise(x, y) + 0.28 * vnoise(x * 2.13 + 17, y * 2.13 + 31)
+    + 0.16 * vnoise(x * 4.37 + 53, y * 4.37 + 71);
+}
+function catmull(p0, p1, p2, p3, t) {
+  const t2 = t * t, t3 = t2 * t;
+  return 0.5 * ((2 * p1) + (-p0 + p2) * t
+    + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2
+    + (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
+}
+
+function paint(points, values, colorFn, size = 768, feather = 0.24, opts2 = {}) {
   const { rows, cols } = meta(points);
+  const at = (r, c) => {
+    const rr = Math.max(0, Math.min(rows - 1, r));
+    const cc = Math.max(0, Math.min(cols - 1, c));
+    const v = values[rr * cols + cc];
+    return Number.isFinite(v) ? v : 0;
+  };
+  const field = new Float32Array(size * size);
+  const band = Math.max(1, size * feather);
+  const tex = opts2.texture == null ? 1 : opts2.texture;
+  for (let y = 0; y < size; y++) {
+    const gy = (1 - y / (size - 1)) * (rows - 1);
+    const r1 = Math.floor(gy), fy = gy - r1;
+    for (let x = 0; x < size; x++) {
+      const gx = (x / (size - 1)) * (cols - 1);
+      const c1 = Math.floor(gx), fx = gx - c1;
+      const p0 = at(r1 - 1, c1 - 1), p1 = at(r1 - 1, c1), p2 = at(r1 - 1, c1 + 1), p3 = at(r1 - 1, c1 + 2);
+      const p4 = at(r1, c1 - 1), p5 = at(r1, c1), p6 = at(r1, c1 + 1), p7 = at(r1, c1 + 2);
+      const p8 = at(r1 + 1, c1 - 1), p9 = at(r1 + 1, c1), pa = at(r1 + 1, c1 + 1), pb = at(r1 + 1, c1 + 2);
+      const pc = at(r1 + 2, c1 - 1), pd = at(r1 + 2, c1), pe = at(r1 + 2, c1 + 1), pf = at(r1 + 2, c1 + 2);
+      const top = catmull(p0, p1, p2, p3, fx);
+      const mid = catmull(p4, p5, p6, p7, fx);
+      const bot = catmull(p8, p9, pa, pb, fx);
+      const low = catmull(pc, pd, pe, pf, fx);
+      let v = catmull(top, mid, bot, low, fy);
+      /* 纹理：幅度随数值变化，低分区几乎不加，高分区的「云絮感」更明显 */
+      if (tex) v += (fbm(x / size * 9, y / size * 9) - 0.5) * (2.2 + v * 0.075) * tex;
+      field[y * size + x] = v;
+    }
+  }
+
   const cv = document.createElement("canvas");
   cv.width = cv.height = size;
   const ctx = cv.getContext("2d");
   const img = ctx.createImageData(size, size);
-  const at = (r, c) => {
-    const v = values[r * cols + c];
-    return Number.isFinite(v) ? v : 0;
-  };
-  const band = Math.max(1, size * feather);
   for (let y = 0; y < size; y++) {
-    const gy = (1 - y / (size - 1)) * (rows - 1);
-    const r0 = Math.min(rows - 1, Math.floor(gy));
-    const r1 = Math.min(rows - 1, r0 + 1);
-    const ty = gy - r0;
     for (let x = 0; x < size; x++) {
-      const gx = (x / (size - 1)) * (cols - 1);
-      const c0 = Math.min(cols - 1, Math.floor(gx));
-      const c1 = Math.min(cols - 1, c0 + 1);
-      const tx = gx - c0;
-      const v = (at(r0, c0) * (1 - tx) + at(r0, c1) * tx) * (1 - ty)
-        + (at(r1, c0) * (1 - tx) + at(r1, c1) * tx) * ty;
-      const col = colorFn(v);
-      let e = Math.min(
-        Math.min(x, size - 1 - x) / band,
-        Math.min(y, size - 1 - y) / band,
-        1
-      );
-      e = e * e * (3 - 2 * e);
       const i = (y * size + x) * 4;
+      const col = colorFn(Math.max(0, Math.min(100, field[y * size + x])));
+      let e = Math.min(Math.min(x, size - 1 - x) / band, Math.min(y, size - 1 - y) / band, 1);
+      e = e * e * (3 - 2 * e);
       img.data[i] = col[0];
       img.data[i + 1] = col[1];
       img.data[i + 2] = col[2];
@@ -134,14 +174,43 @@ function paint(points, values, colorFn, size = 384, feather = 0.16) {
     }
   }
   ctx.putImageData(img, 0, 0);
-  /* 双线性把 9×9 拉成整幅后仍会留下折线感，再叠一层高斯模糊，
-     让等值面像连续云图而不是方格。 */
-  const out = document.createElement("canvas");
-  out.width = out.height = size;
-  const octx = out.getContext("2d");
-  try { octx.filter = "blur(" + Math.max(4, Math.round(size / 48)) + "px)"; } catch (e) {}
-  octx.drawImage(cv, 0, 0);
-  return out.toDataURL("image/png");
+
+  /* 等值线：每 20 分一条，极淡，只提供结构感，不喧宾夺主 */
+  if (opts2.contours !== false && size >= 400) {
+    ctx.strokeStyle = "rgba(255,255,255,0.34)";
+    ctx.lineWidth = Math.max(1, size / 640);
+    const levels = [40, 60, 80];
+    const st = 3; // 每 3 像素采一格，够平滑且不至于拖慢手机
+    for (const lv of levels) {
+      ctx.beginPath();
+      for (let y = 0; y < size - st; y += st) {
+        for (let x = 0; x < size - st; x += st) {
+          const a = field[y * size + x], b = field[y * size + x + st];
+          const c = field[(y + st) * size + x], d = field[(y + st) * size + x + st];
+          const idx = (a > lv ? 1 : 0) | (b > lv ? 2 : 0) | (d > lv ? 4 : 0) | (c > lv ? 8 : 0);
+          if (idx === 0 || idx === 15) continue;
+          const lerp = (p, q) => (lv - p) / (q - p);
+          const top = () => [x + st * lerp(a, b), y];
+          const right = () => [x + st, y + st * lerp(b, d)];
+          const bottom = () => [x + st * lerp(c, d), y + st];
+          const left = () => [x, y + st * lerp(a, c)];
+          const seg = {
+            1: [left, top], 2: [top, right], 3: [left, right], 4: [right, bottom],
+            5: [left, top, right, bottom], 6: [top, bottom], 7: [left, bottom],
+            8: [bottom, left], 9: [bottom, top], 10: [top, right, bottom, left],
+            11: [bottom, right], 12: [left, right], 13: [right, top], 14: [top, left]
+          }[idx];
+          if (!seg) continue;
+          for (let k = 0; k < seg.length; k += 2) {
+            ctx.moveTo(seg[k][0], seg[k][1]);
+            ctx.lineTo(seg[k + 1][0], seg[k + 1][1]);
+          }
+        }
+      }
+      ctx.stroke();
+    }
+  }
+  return cv.toDataURL("image/png");
 }
 
 /* ---------- 状态 ---------- */
@@ -316,19 +385,22 @@ function apply() {
     if (sig === glowSig && glowUrl) {
       url = glowUrl;
     } else {
-      url = paint(opts.points, opts.points.map((p) => p.score), glowRamp);
+      /* 手机降一档分辨率：768² 的双三次 + 等值线在低端机要 300ms+，
+         512² 肉眼几乎看不出差别，但快一倍。 */
+      const sz = (window.innerWidth < 700 ? 512 : 768);
+      url = paint(opts.points, opts.points.map((p) => p.score), glowRamp, sz, 0.24);
       glowSig = sig;
       glowUrl = url;
     }
     const b = boundsOf(opts.points);
     if (!glowLayer) {
-      glowLayer = L.imageOverlay(url, b, { pane: "glowPane", opacity: 0.74, interactive: false });
+      glowLayer = L.imageOverlay(url, b, { pane: "glowPane", opacity: 0.68, interactive: false });
       glowLayer.addTo(map);
     } else {
       glowLayer.setUrl(url);
       glowLayer.setBounds(b);
     }
-    glowLayer.setOpacity(opts.glowOn === false ? 0 : 0.74);
+    glowLayer.setOpacity(opts.glowOn === false ? 0 : 0.68);
   }
 
   // 城市标注
@@ -485,7 +557,14 @@ function apply() {
           map.setView([opts.focus.lat, opts.focus.lon], 5);
         }
       } else if (points && points.length) {
-        map.fitBounds(viewBoundsOf(points), { padding: [18, 18], maxZoom: 9 });
+        /* 地图容器是横幅（约 2.7:1），网格接近方形：fitBounds 会被高度卡住，
+           把数据缩成中间一小块、两边露出空底图。这里直接按「经度跨度铺满 80% 宽度」
+           算缩放级别，上下允许裁切——用户看到的就是一张铺满的晚霞图。 */
+        const bb = L.latLngBounds(viewBoundsOf(points));
+        const size = map.getSize();
+        const lonSpan = Math.max(0.2, bb.getEast() - bb.getWest());
+        const z = Math.log2(360 * (size.x * 0.8) / (256 * lonSpan));
+        map.setView(bb.getCenter(), Math.max(3, Math.min(9, z)), { animate: false });
       } else {
         map.setView([city.lat, city.lon], 7);
       }

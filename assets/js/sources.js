@@ -6,7 +6,7 @@
    ④ 挪威气象局 met.no（总云量交叉校验）
    全部免密钥、支持浏览器直连；20 分钟本地缓存。
    ============================================================ */
-import { parseLocal } from "./astro.js";
+import { parseLocal } from "./astro.js?v=17";
 
 const API = "https://api.open-meteo.com/v1/forecast";
 const ENS = "https://ensemble-api.open-meteo.com/v1/ensemble";
@@ -23,17 +23,35 @@ export const MODELS = [
 ];
 
 const CACHE_PREFIX = "sky_cache_v3_";
-const TTL = 20 * 60 * 1000;
+const TTL = 30 * 60 * 1000;
+/* 数据源被限流（Open-Meteo 免费额度 5000 次/小时/IP，移动网络 NAT 下很容易被邻居打满）
+   时，宁可显示一份「过期但真实」的缓存，也不要给用户一个「数据读取失败」。
+   STALE_MAX 之内允许兜底，并在界面上标注缓存时间。 */
+const STALE_MAX = 6 * 60 * 60 * 1000;
 
 function cacheKey(lat, lon) {
   return CACHE_PREFIX + lat.toFixed(2) + "_" + lon.toFixed(2);
 }
 
+/* 额度熔断：Open-Meteo 免费额度是「每 IP 每天 10000 次」，移动网络 NAT 下
+   很容易被同网段用户打满。一旦收到 429，10 分钟内不再发任何请求——
+   页面直接用本地缓存渲染，既不给用户看空白，也不再继续消耗额度。 */
+const BREAK_KEY = "sky_quota_block";
+const BREAK_MS = 10 * 60 * 1000;
+function quotaBlocked() {
+  try { return Date.now() - (+localStorage.getItem(BREAK_KEY) || 0) < BREAK_MS; } catch (e) { return false; }
+}
+function markBlocked() {
+  try { localStorage.setItem(BREAK_KEY, String(Date.now())); } catch (e) {}
+}
+
 async function getJSON(url, ms = 20000) {
+  if (quotaBlocked()) throw new Error("HTTP 429 (cooling down)");
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), ms);
   try {
     const res = await fetch(url, { signal: ctl.signal, cache: "no-cache" });
+    if (res.status === 429) { markBlocked(); throw new Error("HTTP 429"); }
     if (!res.ok) throw new Error("HTTP " + res.status);
     return await res.json();
   } finally {
@@ -160,16 +178,14 @@ async function fetchMetno(lat, lon) {
 /* ---------- 对外 ---------- */
 export async function loadSky(lat, lon, opts = {}) {
   const key = cacheKey(lat, lon);
-  if (!opts.force) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const c = JSON.parse(raw);
-        if (c && c.t && Date.now() - c.t < TTL && c.d && c.d.models) {
-          return { ...c.d, cached: true, updated: c.t };
-        }
-      }
-    } catch (e) {}
+  let cachedRaw = null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) cachedRaw = JSON.parse(raw);
+  } catch (e) { cachedRaw = null; }
+  if (!opts.force && cachedRaw && cachedRaw.t && Date.now() - cachedRaw.t < TTL
+    && cachedRaw.d && cachedRaw.d.models) {
+    return { ...cachedRaw.d, cached: true, updated: cachedRaw.t };
   }
 
   const jobs = {
@@ -180,7 +196,15 @@ export async function loadSky(lat, lon, opts = {}) {
   };
   const settled = await Promise.allSettled([jobs.core, jobs.ensemble, jobs.air, jobs.metno]);
   const [coreR, ensR, airR, metR] = settled;
-  if (coreR.status === "rejected") throw coreR.reason;
+  if (coreR.status === "rejected") {
+    /* 核心数据没拿到：优先用未过期的本地缓存（可能是几分钟前的），再退到陈旧缓存。
+       限流时用户看到的应该是「几分钟前的真实预报」，而不是一块空白。 */
+    if (cachedRaw && cachedRaw.d && cachedRaw.d.models
+      && Date.now() - cachedRaw.t < STALE_MAX) {
+      return { ...cachedRaw.d, cached: true, stale: true, updated: cachedRaw.t, error: coreR.reason };
+    }
+    throw coreR.reason;
+  }
 
   const [{ times, models }, ctx] = coreR.value;
   const ensemble = ensR.status === "fulfilled" ? ensR.value : null;
@@ -210,24 +234,25 @@ export async function loadSky(lat, lon, opts = {}) {
    云量改用 ECMWF 集合（51 成员）——与首页主评分同一口径，
    否则会出现「卡片 65、地图上上海 38」这种自相矛盾。
    缓存前缀升到 v3，避免读到旧的 5×5 确定性结果。 */
-const GRID_N = 7;
-const GRID_STEP = 0.5; // 度；按纬度修正经度间距，约 48–55 公里
+const GRID_N = 9;
+const GRID_STEP = 0.55; // 度；按纬度修正经度间距，约 54–60 公里，覆盖 ±2.2°
 const GRID_MODELS = ["ecmwf_ifs025", "cma_grapes_global", "icon_seamless"];
-const GRID_TTL = 20 * 60 * 1000;
-const GRID_PREFIX = "sky_grid_v4_";
+/* 网格只服务地图图层，变化慢、体积大：缓存 90 分钟，并允许陈旧兜底。
+   Open-Meteo 免费额度按「请求数 × 坐标数」计，9×9=81 点一次就吃 81 个额度，
+   所以这里必须懒加载 + 长缓存，否则移动网络 NAT 下很容易把共用 IP 打爆。 */
+const GRID_TTL = 90 * 60 * 1000;
+const GRID_PREFIX = "sky_grid_v5_";
 
 export async function loadGrid(lat, lon, opts = {}) {
   const key = GRID_PREFIX + lat.toFixed(2) + "_" + lon.toFixed(2);
-  if (!opts.force) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const c = JSON.parse(raw);
-        if (c && c.t && Date.now() - c.t < GRID_TTL && c.d && c.d.points) {
-          return { ...c.d, cached: true };
-        }
-      }
-    } catch (e) {}
+  let cachedRaw = null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) cachedRaw = JSON.parse(raw);
+  } catch (e) { cachedRaw = null; }
+  if (!opts.force && cachedRaw && cachedRaw.t && Date.now() - cachedRaw.t < GRID_TTL
+    && cachedRaw.d && cachedRaw.d.points) {
+    return { ...cachedRaw.d, cached: true };
   }
   const cos = Math.max(0.3, Math.cos(lat * Math.PI / 180));
   const pts = [];
@@ -240,22 +265,40 @@ export async function loadGrid(lat, lon, opts = {}) {
       });
     }
   }
-  const base = `latitude=${pts.map((p) => p.lat).join(",")}&longitude=${pts.map((p) => p.lon).join(",")}`
-    + `&timezone=Asia%2FShanghai&forecast_days=1`;
-  /* 云量用 ECMWF 确定性单模型：49 点 × 51 成员的集合请求会触发
-     Open-Meteo 的分钟级限流（实测 429），不可行。
+  /* 云量用 ECMWF 确定性单模型：81 点 × 51 成员的集合请求会触发
+     Open-Meteo 的限流（实测 429），不可行。
      地图的空间形态来自确定性高分辨率网格，整体水平由 app.js 用
-     「集合中位数 − ECMWF 确定性」的偏差做校正，保证与首页同口径。 */
-  const cloudUrl = `${API}?${base}&hourly=cloud_cover_low,cloud_cover_mid,cloud_cover_high&models=ecmwf_ifs025`;
-  const ctxUrl = `${API}?${base}&hourly=visibility,precipitation_probability,dew_point_2m,temperature_2m`;
-  const [cloud, ctxRaw] = await Promise.all([getJSON(cloudUrl, 35000), getJSON(ctxUrl, 35000)]);
-  const cloudArr = Array.isArray(cloud) ? cloud : [cloud];
-  const ctxArr = Array.isArray(ctxRaw) ? ctxRaw : [ctxRaw];
+     「集合中位数 − ECMWF 确定性」的偏差做校正，保证与首页同口径。
+
+     两个前提是实测出来的：
+     ① 额度按「坐标数」计，所以云量和地面要素必须合并成一个请求
+        （拆成两个等于开销翻倍：49 点 × 2 = 98 额度/次）；
+     ② 单次 URL 的坐标数有上限，81 点会直接返回 414，
+        所以按 CHUNK 分批，每批一个请求。 */
+  const HOURLY = "cloud_cover_low,cloud_cover_mid,cloud_cover_high,"
+    + "visibility,precipitation_probability,dew_point_2m,temperature_2m";
+  const CHUNK = 49;
+  const chunks = [];
+  for (let i = 0; i < pts.length; i += CHUNK) chunks.push(pts.slice(i, i + CHUNK));
+  let arr;
+  try {
+    const parts = await Promise.all(chunks.map(async (chunk) => {
+      const q = `latitude=${chunk.map((p) => p.lat).join(",")}&longitude=${chunk.map((p) => p.lon).join(",")}`
+        + `&timezone=Asia%2FShanghai&forecast_days=1&hourly=${HOURLY}&models=ecmwf_ifs025`;
+      const raw = await getJSON(`${API}?${q}`, 45000);
+      return Array.isArray(raw) ? raw : [raw];
+    }));
+    arr = parts.flat();
+  } catch (err) {
+    /* 网格只影响地图着色，没必要让整块地图报错：有旧缓存就先用旧的。 */
+    if (cachedRaw && cachedRaw.d && cachedRaw.d.points
+      && Date.now() - cachedRaw.t < STALE_MAX) {
+      return { ...cachedRaw.d, cached: true, stale: true, error: err };
+    }
+    throw err;
+  }
   const points = pts.map((p, idx) => {
-    const h = (cloudArr[idx] && cloudArr[idx].hourly) || {};
-    const c = (ctxArr[idx] && ctxArr[idx].hourly) || {};
-    /* 单模型请求时 Open-Meteo 返回不带模型后缀的字段名；
-       多模型时才加 _ecmwf_ifs025。两种都兼容。 */
+    const h = (arr[idx] && arr[idx].hourly) || {};
     const pick = (k) => nums(h[k + "_ecmwf_ifs025"] || h[k] || []);
     const models = [{
       id: "ecmwf_ifs025",
@@ -270,11 +313,11 @@ export async function loadGrid(lat, lon, opts = {}) {
       members: [],
       models,
       ctx: {
-        times: timeAxis(c.time),
-        visibility: nums(c.visibility).map((v) => (v == null ? null : v / 1000)),
-        precip: nums(c.precipitation_probability),
-        dew: nums(c.dew_point_2m),
-        temp: nums(c.temperature_2m)
+        times: timeAxis(h.time),
+        visibility: nums(h.visibility).map((v) => (v == null ? null : v / 1000)),
+        precip: nums(h.precipitation_probability),
+        dew: nums(h.dew_point_2m),
+        temp: nums(h.temperature_2m)
       }
     };
   });

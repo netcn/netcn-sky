@@ -6,8 +6,8 @@
    - 模式分歧越大，置信度越低
    所有因子都保留下来，前端可以逐条解释“为什么”。
    ============================================================ */
-import { clamp, sunTimes, sunPosition, moonPosition, moonIllumination, moonTimes, addDays, startOfLocalDay, phaseName } from "./astro.js";
-import { interpolator } from "./sources.js";
+import { clamp, sunTimes, sunPosition, moonPosition, moonIllumination, moonTimes, addDays, startOfLocalDay, phaseName } from "./astro.js?v=17";
+import { interpolator } from "./sources.js?v=17";
 
 const num = (v, d = null) => (Number.isFinite(v) ? v : d);
 const lerp = (a, b, k) => a + (b - a) * clamp(k, 0, 1);

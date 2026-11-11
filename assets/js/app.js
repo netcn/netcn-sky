@@ -2,11 +2,11 @@
    火烧云 · 页面逻辑
    数据 → 评分 → 渲染；城市默认上海，可切换/定位。
    ============================================================ */
-import { loadSky, loadGrid, loadStorms, loadOfficialTracks, matchOfficialTrack, reverseName, interpolator } from "./sources.js";
-import { evaluate, glowFactors, scoreGrid } from "./scoring.js";
-import { CITIES, DEFAULT_CITY, cityById, nearestCity, cityLabel } from "./cities.js";
-import { fmtHM, phaseName } from "./astro.js";
-import { updateLiveMap, setMapLoading } from "./live-map.js";
+import { loadSky, loadGrid, loadStorms, loadOfficialTracks, matchOfficialTrack, reverseName, interpolator } from "./sources.js?v=17";
+import { evaluate, glowFactors, scoreGrid } from "./scoring.js?v=17";
+import { CITIES, DEFAULT_CITY, cityById, nearestCity, cityLabel } from "./cities.js?v=17";
+import { fmtHM, phaseName } from "./astro.js?v=17";
+import { updateLiveMap, setMapLoading } from "./live-map.js?v=17";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -25,6 +25,7 @@ const T = {
     /* 全站只用北京时间：所有数据源（UTC / 挪威 / 美国 / 日本）都已换算到 UTC+8，
        页面明确标注，海外用户不会把 17:03 误当成自己的本地时间。 */
     tzTag: "（北京时间）", tzName: "北京时间（UTC+8）", cachedTag: "（缓存）",
+    staleTag: "（数据源限流，显示缓存）",
     now: "现在", sunset: "日落", blueHour: "蓝调", moonrise: "月出", sunrise: "日出",
     tlHint: "柱高是云量，颜色随温度变化；紫线是降水，灰罩是空气较差（时间为北京时间）",
     tlCloud: "云量", tlRain: "降水",
@@ -65,6 +66,7 @@ const T = {
     cityTitle: "Choose a city", filterPh: "City name, e.g. Shanghai",
     refresh: "Refresh", geo: "Use my location", updated: "updated", updating: "updating…",
     tzTag: " (China Standard Time)", tzName: "China Standard Time (UTC+8)", cachedTag: " (cached)",
+    staleTag: " (rate-limited, cached data)",
     now: "now", sunset: "Sunset", blueHour: "Blue hour", moonrise: "Moonrise", sunrise: "Sunrise",
     tlHint: "Bar height is cloud cover, colour tracks temperature; violet = rain, grey = poor air (times in CST / UTC+8)",
     tlCloud: "Cloud", tlRain: "Rain",
@@ -100,7 +102,7 @@ const T = {
 };
 
 Object.assign(T.zh, {
-  mapTitle: "晚霞地图 · 你周围约 300 公里",
+  mapTitle: "晚霞地图 · 你周围约 500 公里",
   mapHint: "颜色越暖，指数越高",
   mapReset: "回到我的位置",
   mapStormTitle: "台风位置",
@@ -128,7 +130,7 @@ Object.assign(T.zh, {
   myLocation: "我的位置"
 });
 Object.assign(T.en, {
-  mapTitle: "Glow map · about 300 km around you",
+  mapTitle: "Glow map · about 500 km around you",
   mapHint: "Warmer colours mean a higher index",
   mapReset: "Back to my location",
   mapStormTitle: "Storm position",
@@ -262,35 +264,12 @@ async function loadExtras(force = false) {
   if (!ev) return;
   S.extrasLoading = true;
   renderMapSection();
-  const [g, s, o] = await Promise.allSettled([
-    loadGrid(S.city.lat, S.city.lon, { force }),
+  /* 网格（9×9 = 81 个坐标）单独懒加载：它是全站最贵的一个请求，
+     只在用户真的把地图滚进视口时才发，避免用手机流量和公共额度换一张没人看的地图。 */
+  const [s, o] = await Promise.allSettled([
     loadStorms({ force }),
     loadOfficialTracks({ force, lat: S.city.lat, lon: S.city.lon })
   ]);
-  if (g.status === "fulfilled") {
-    S.grid = g.value;
-    const raw = scoreGrid(g.value, ev.sun.sunset, ev.evening ? ev.evening.ctx.aod : 0.2);
-    /* 偏差校正：网格是 ECMWF 确定性，首页主分是集合中位数。
-       不加这一步会出现「卡片 65、地图上上海 38」的自相矛盾。 */
-    const ecModel = ev.evening && ev.evening.models
-      ? ev.evening.models.find((m) => m.id === "ecmwf_ifs025") : null;
-    /* 偏差限幅 ±25：模型分歧极大时（今天 ECMWF 20、集合 68）
-       不设上限会把整张图推到 100 分。 */
-    const offset = (ev.evening && ev.evening.ensMedian != null && ecModel)
-      ? Math.max(-25, Math.min(25, ev.evening.ensMedian - ecModel.score)) : 0;
-    /* 上限锁在中心点评分 +30：区域网格只用来表达「哪里相对更好」，
-       不能让北边某个格点显示 95 分、而卡片上上海只有 25%，
-       那会直接误导。11-10 这类真正的好晚霞（中心 76）不受影响。 */
-    const cap = Math.min(100, (ev.evening ? ev.evening.score : 50) + 30);
-    S.gridScores = raw.map((p) => ({
-      ...p,
-      score: Math.max(0, Math.min(cap, p.score + offset))
-    }));
-    S.mapError = false;
-  } else {
-    console.warn("grid", g.reason);
-    S.mapError = true;
-  }
   const tracks = o.status === "fulfilled" ? (o.value.list || []) : [];
   S.officialTracks = tracks;
   const base = s.status === "fulfilled" ? s.value.list.slice() : [];
@@ -319,6 +298,61 @@ async function loadExtras(force = false) {
   window.__skyExtrasReady = true;
   renderMapSection();
   renderStorms();
+  ensureGrid(force);
+}
+
+/* ---------- 晚霞地图网格（懒加载） ---------- */
+let gridObserver = null;
+let gridBusy = false;
+
+function ensureGrid(force = false) {
+  const el = $("#skyMap");
+  if (!el || typeof IntersectionObserver === "undefined") { loadGridForMap(force); return; }
+  if (S.gridScores && !force) return;
+  if (gridObserver) return;
+  gridObserver = new IntersectionObserver((es) => {
+    if (!es.some((e) => e.isIntersecting)) return;
+    gridObserver.disconnect();
+    gridObserver = null;
+    loadGridForMap(force);
+  }, { rootMargin: "320px" });
+  gridObserver.observe(el);
+}
+
+async function loadGridForMap(force = false) {
+  if (gridBusy) return;
+  const ev = S.days[0];
+  if (!ev) return;
+  gridBusy = true;
+  try {
+    const grid = await loadGrid(S.city.lat, S.city.lon, { force });
+    S.grid = grid;
+    const raw = scoreGrid(grid, ev.sun.sunset, ev.evening ? ev.evening.ctx.aod : 0.2);
+    /* 偏差校正：网格是 ECMWF 确定性，首页主分是集合中位数。
+       不加这一步会出现「卡片 65、地图上上海 38」的自相矛盾。 */
+    const ecModel = ev.evening && ev.evening.models
+      ? ev.evening.models.find((m) => m.id === "ecmwf_ifs025") : null;
+    /* 偏差限幅 ±25：模型分歧极大时（今天 ECMWF 20、集合 68）
+       不设上限会把整张图推到 100 分。 */
+    const offset = (ev.evening && ev.evening.ensMedian != null && ecModel)
+      ? Math.max(-25, Math.min(25, ev.evening.ensMedian - ecModel.score)) : 0;
+    /* 上限锁在中心点评分 +30：区域网格只用来表达「哪里相对更好」，
+       不能让北边某个格点显示 95 分、而卡片上上海只有 25%，
+       那会直接误导。11-10 这类真正的好晚霞（中心 76）不受影响。 */
+    const cap = Math.min(100, (ev.evening ? ev.evening.score : 50) + 30);
+    S.gridScores = raw.map((p) => ({
+      ...p,
+      score: Math.max(0, Math.min(cap, p.score + offset))
+    }));
+    S.mapError = false;
+    S.gridStale = !!grid.stale;
+  } catch (e) {
+    console.warn("grid", e);
+    S.mapError = true;
+  } finally {
+    gridBusy = false;
+    renderMapSection();
+  }
 }
 
 /* ---------- 渲染：首屏 ---------- */
@@ -340,7 +374,7 @@ function renderHero() {
   const updEl = $("#updateTime");
   if (updEl) {
     updEl.textContent = upd
-      ? `${t().updated} ${fmtHM(upd, 8)}${t().tzTag}${S.data.cached ? t().cachedTag : ""}`
+      ? `${t().updated} ${fmtHM(upd, 8)}${t().tzTag}${S.data.stale ? t().staleTag : (S.data.cached ? t().cachedTag : "")}`
       : "—";
     updEl.title = t().tzName;
   }
