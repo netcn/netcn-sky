@@ -6,18 +6,20 @@
    - 台风：NASA EONET 最新记录位置
    地图按需初始化（进入视口才加载 Leaflet 实例与瓦片），不拖首屏。
    ============================================================ */
-import { fmtHM, parseLocal } from "./astro.js?v=20";
+import { fmtHM, parseLocal } from "./astro.js?v=21";
 
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
-/* 底图可用性：Esri 在中国大陆经常被墙或超时（实测 2026-11-11 直接加载失败），
-   OSM 与高德可用。所以「街道」默认走 OSM（免密钥、允许署名使用），
-   「卫星/深色」仍用 Esri，但连续失败会自动回落到 OSM，避免出现一块空底图。 */
+/* 底图：Esri 卫星 / Esri 街道 / Esri 深色 / OSM 街道。
+   Esri 与 OSM 在国内都可访问，但都会偶发超时；任何一层连续失败就自动降级，
+   保证「哪怕底图挂了，晚霞图层也铺在某个能看见的底图上」。 */
 const OSM = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const BASEMAPS = {
   sat: ESRI + "World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  street: OSM,
-  dark: ESRI + "Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+  street: ESRI + "World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+  dark: ESRI + "Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+  osm: OSM
 };
+const BASE_CHAIN = { sat: ["street", "osm"], street: ["osm"], dark: ["osm"], osm: ["street"] };
 const BASE_KEY = "sky_map_base_v1";
 const RADAR_TTL = 5 * 60 * 1000;
 
@@ -237,7 +239,7 @@ let stormGroup = null;
 let opts = null;
 let observer = null;
 let lastViewKey = "";
-let baseKind = "street";
+let baseKind = "sat";
 let radarOn = true;
 let radarMeta = null;
 let radarLayers = new Map();
@@ -291,25 +293,7 @@ function init(el) {
     if (saved && BASEMAPS[saved]) baseKind = saved;
   } catch (e) {}
 
-  base = L.tileLayer(BASEMAPS[baseKind], { maxZoom: 16, attribution: "" }).addTo(map);
-  /* 底图兜底：Esri 在部分网络下会被挡或超时，连续失败就换一个源，
-     否则用户看到的是「一块深色底 + 一团晚霞」，会以为地图坏了。 */
-  let baseErrs = 0;
-  let swapped = false;
-  base.on("tileerror", () => {
-    if (swapped || ++baseErrs < 5) return;
-    swapped = true;
-    try {
-      map.removeLayer(base);
-      base = L.tileLayer(OSM, { maxZoom: 16, attribution: "" }).addTo(map);
-      if (base.bringToBack) base.bringToBack();
-      /* 同步按钮状态，免得「选着卫星、显示街道」 */
-      baseKind = "street";
-      document.querySelectorAll("[data-base]").forEach((b) => {
-        b.classList.toggle("on", b.dataset.base === "street");
-      });
-    } catch (e) {}
-  });
+  mountBase(baseKind);
   map.attributionControl.setPrefix(false);
   map.attributionControl.addAttribution('<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a> · <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> · <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>');
   L.control.zoom({ position: "topright" }).addTo(map);
@@ -334,6 +318,28 @@ function init(el) {
     const hide = window.innerWidth < 640 && map.getZoom() <= 5;
     if (hide && map.hasLayer(cityGroup)) map.removeLayer(cityGroup);
     if (!hide && !map.hasLayer(cityGroup)) cityGroup.addTo(map);
+  });
+}
+
+/* 挂载底图；连续 tileerror 就按 BASE_CHAIN 降级，直到有一个能显示 */
+function mountBase(kind) {
+  if (!map || !BASEMAPS[kind]) return;
+  baseKind = kind;
+  base = L.tileLayer(BASEMAPS[kind], { maxZoom: 16, attribution: "" }).addTo(map);
+  let errs = 0;
+  base.on("tileerror", () => {
+    if (++errs < 6) return;
+    const chain = BASE_CHAIN[kind] || [];
+    if (!chain.length) return;
+    const next = chain.shift();
+    try {
+      map.removeLayer(base);
+      mountBase(next);
+      document.querySelectorAll("[data-base]").forEach((b) => {
+        b.classList.toggle("on", b.dataset.base === baseKind);
+        b.setAttribute("aria-pressed", String(b.dataset.base === baseKind));
+      });
+    } catch (e) {}
   });
 }
 

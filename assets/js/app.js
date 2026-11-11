@@ -2,11 +2,11 @@
    火烧云 · 页面逻辑
    数据 → 评分 → 渲染；城市默认上海，可切换/定位。
    ============================================================ */
-import { loadSky, loadGrid, loadStorms, loadOfficialTracks, matchOfficialTrack, reverseName, interpolator } from "./sources.js?v=20";
-import { evaluate, glowFactors, scoreGrid } from "./scoring.js?v=20";
-import { CITIES, DEFAULT_CITY, cityById, nearestCity, cityLabel } from "./cities.js?v=20";
-import { fmtHM, phaseName } from "./astro.js?v=20";
-import { updateLiveMap, setMapLoading } from "./live-map.js?v=20";
+import { loadSky, loadGrid, loadStorms, loadOfficialTracks, matchOfficialTrack, reverseName, interpolator } from "./sources.js?v=21";
+import { evaluate, glowFactors, scoreGrid } from "./scoring.js?v=21";
+import { CITIES, DEFAULT_CITY, cityById, nearestCity, cityLabel } from "./cities.js?v=21";
+import { fmtHM, phaseName } from "./astro.js?v=21";
+import { updateLiveMap, setMapLoading } from "./live-map.js?v=21";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -25,6 +25,8 @@ const T = {
     /* 全站只用北京时间：所有数据源（UTC / 挪威 / 美国 / 日本）都已换算到 UTC+8，
        页面明确标注，海外用户不会把 17:03 误当成自己的本地时间。 */
     tzTag: "（北京时间）", tzName: "北京时间（UTC+8）", cachedTag: "（缓存）",
+    degradedNames: { models: "云量模式", ctx: "能见度与降水", ensemble: "集合预报", air: "空气质量", metno: "met.no 交叉校验" },
+    degraded: (list) => `${list} 本次没有取到，结果按其余数据源计算。`,
     staleTag: "（数据源限流，显示缓存）",
     now: "现在", sunset: "日落", blueHour: "蓝调", moonrise: "月出", sunrise: "日出",
     tlHint: "柱高是云量，颜色随温度变化；紫线是降水，灰罩是空气较差（时间为北京时间）",
@@ -66,6 +68,8 @@ const T = {
     cityTitle: "Choose a city", filterPh: "City name, e.g. Shanghai",
     refresh: "Refresh", geo: "Use my location", updated: "updated", updating: "updating…",
     tzTag: " (China Standard Time)", tzName: "China Standard Time (UTC+8)", cachedTag: " (cached)",
+    degradedNames: { models: "cloud models", ctx: "visibility & rain", ensemble: "ensemble", air: "air quality", metno: "met.no cross-check" },
+    degraded: (list) => `${list} unavailable this time — the result uses the remaining sources.`,
     staleTag: " (rate-limited, cached data)",
     now: "now", sunset: "Sunset", blueHour: "Blue hour", moonrise: "Moonrise", sunrise: "Sunrise",
     tlHint: "Bar height is cloud cover, colour tracks temperature; violet = rain, grey = poor air (times in CST / UTC+8)",
@@ -980,7 +984,18 @@ function toast(msg, ms = 3200) {
 /* ---------- 渲染：说明 ---------- */
 function renderNote() {
   const upd = S.data && S.data.updated ? fmtHM(new Date(S.data.updated), 8) : "—";
-  $("#sourceNote").innerHTML = t().srcNote(upd);
+  const box = $("#sourceNote");
+  box.innerHTML = t().srcNote(upd);
+  const dg = (S.data && S.data.degraded) || [];
+  if (dg.length) {
+    const names = t().degradedNames || {};
+    const list = dg.map((k) => names[k] || k).join("、");
+    const p = document.createElement("p");
+    p.className = "sky-hint";
+    p.style.margin = "6px 0 0";
+    p.textContent = t().degraded(list);
+    box.appendChild(p);
+  }
 }
 
 /* ---------- 城市选择 ---------- */

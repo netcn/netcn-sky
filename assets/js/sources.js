@@ -6,7 +6,7 @@
    ④ 挪威气象局 met.no（总云量交叉校验）
    全部免密钥、支持浏览器直连；20 分钟本地缓存。
    ============================================================ */
-import { parseLocal } from "./astro.js?v=20";
+import { parseLocal } from "./astro.js?v=21";
 
 const API = "https://api.open-meteo.com/v1/forecast";
 const ENS = "https://ensemble-api.open-meteo.com/v1/ensemble";
@@ -175,6 +175,33 @@ async function fetchMetno(lat, lon) {
   return { times, cloud };
 }
 
+
+/* 用集合成员的中位数合成一条「模式」，供确定性模式不可用时兜底 */
+function ensembleAsModel(ens) {
+  const col = (key) => ens.times.map((_, i) => {
+    const v = ens.members
+      .map((m) => (m[key] ? m[key][i] : null))
+      .filter((x) => x != null)
+      .sort((a, b) => a - b);
+    return v.length ? v[v.length >> 1] : null;
+  });
+  const low = col("low"), mid = col("mid"), high = col("high"), total = col("total");
+  return {
+    id: "ecmwf_ifs025", label: "ECMWF ENS", zh: "ECMWF 集合", org: "ECMWF", weight: 1,
+    cloud: { low, mid, high, total: total.some((v) => v != null) ? total : high }
+  };
+}
+
+/* 地面要素缺失时的保守默认：能见度 15 km、降水概率 20%、露点差 3℃ */
+function defaultCtx(times) {
+  const fill = (v) => times.map(() => v);
+  return {
+    current: null, dailyDetail: null, times,
+    precip: fill(20), visibility: fill(15), dew: fill(8), temp: fill(18),
+    rh: fill(60), wind: fill(10), code: fill(1), daily: {}
+  };
+}
+
 /* ---------- 对外 ---------- */
 export async function loadSky(lat, lon, opts = {}) {
   const key = cacheKey(lat, lon);
@@ -188,37 +215,55 @@ export async function loadSky(lat, lon, opts = {}) {
     return { ...cachedRaw.d, cached: true, updated: cachedRaw.t };
   }
 
-  const jobs = {
-    core: Promise.all([fetchModels(lat, lon), fetchContext(lat, lon)]),
-    ensemble: fetchEnsemble(lat, lon),
-    air: fetchAir(lat, lon),
-    metno: fetchMetno(lat, lon)
-  };
-  const settled = await Promise.allSettled([jobs.core, jobs.ensemble, jobs.air, jobs.metno]);
-  const [coreR, ensR, airR, metR] = settled;
-  if (coreR.status === "rejected") {
-    /* 核心数据没拿到：优先用未过期的本地缓存（可能是几分钟前的），再退到陈旧缓存。
-       限流时用户看到的应该是「几分钟前的真实预报」，而不是一块空白。 */
-    if (cachedRaw && cachedRaw.d && cachedRaw.d.models
-      && Date.now() - cachedRaw.t < STALE_MAX) {
-      return { ...cachedRaw.d, cached: true, stale: true, updated: cachedRaw.t, error: coreR.reason };
-    }
-    throw coreR.reason;
-  }
-
-  const [{ times, models }, ctx] = coreR.value;
+  /* 五个数据源各自独立结算：任何一个挂了都不该让整页没有结论。
+     只要「云量模式」或「集合」任意一个拿到，就能算分；
+     能见度 / 降水 / 气溶胶缺失时用保守默认值，并在界面上标出降级。 */
+  const settled = await Promise.allSettled([
+    fetchModels(lat, lon), fetchContext(lat, lon),
+    fetchEnsemble(lat, lon), fetchAir(lat, lon), fetchMetno(lat, lon)
+  ]);
+  const [modelsR, ctxR, ensR, airR, metR] = settled;
   const ensemble = ensR.status === "fulfilled" ? ensR.value : null;
   const air = airR.status === "fulfilled" ? airR.value : null;
   const metno = metR.status === "fulfilled" ? metR.value : null;
+  const degraded = [];
+  if (modelsR.status !== "fulfilled") degraded.push("models");
+  if (ctxR.status !== "fulfilled") degraded.push("ctx");
+  if (!ensemble || !ensemble.members.length) degraded.push("ensemble");
+  if (!air) degraded.push("air");
+  if (!metno) degraded.push("metno");
+
+  let times = null, models = null;
+  if (modelsR.status === "fulfilled") {
+    times = modelsR.value.times;
+    models = modelsR.value.models;
+  } else if (ensemble && ensemble.members.length) {
+    /* 确定性模式全挂、但集合还在：用集合逐成员的中位数合成一条「模式」，
+       分数照样算得出来，只是少了多模式对比表。 */
+    times = ensemble.times;
+    models = [ensembleAsModel(ensemble)];
+  }
+  if (!times || !models || !models.length) {
+    /* 两个主源都没拿到：优先用未过期的本地缓存，再退到陈旧缓存。
+       限流时用户看到的应该是「几分钟前的真实预报」，而不是一块空白。 */
+    if (cachedRaw && cachedRaw.d && cachedRaw.d.models
+      && Date.now() - cachedRaw.t < STALE_MAX) {
+      return { ...cachedRaw.d, cached: true, stale: true, updated: cachedRaw.t, error: modelsR.reason };
+    }
+    throw (modelsR.reason || new Error("云量数据不可用"));
+  }
+  const ctx = ctxR.status === "fulfilled" ? ctxR.value : defaultCtx(times);
 
   const data = {
     times, models, ctx, ensemble, air, metno,
     updated: Date.now(),
+    degraded,
     status: {
       models: models.length,
       ensemble: ensemble ? ensemble.members.length : 0,
       metno: !!metno,
-      air: !!air
+      air: !!air,
+      ctx: ctxR.status === "fulfilled"
     }
   };
   try {
