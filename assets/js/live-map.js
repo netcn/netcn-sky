@@ -6,7 +6,7 @@
    - 台风：NASA EONET 最新记录位置
    地图按需初始化（进入视口才加载 Leaflet 实例与瓦片），不拖首屏。
    ============================================================ */
-import { fmtHM, parseLocal } from "./astro.js?v=17";
+import { fmtHM, parseLocal } from "./astro.js?v=18";
 
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
 const BASEMAPS = {
@@ -20,15 +20,15 @@ const RADAR_TTL = 5 * 60 * 1000;
 /* 晚霞色带：低分区接近透明，40 分起米黄，60 分橙，80 分以上红。
    与截图程序的黄→橙→红一致，比旧版更暖、覆盖更实。 */
 const GLOW_STOPS = [
-  [0, [120, 140, 160, 0]],
-  [12, [168, 186, 150, 34]],
-  [24, [222, 212, 120, 80]],
-  [36, [240, 200, 92, 116]],
-  [48, [246, 180, 62, 148]],
-  [60, [246, 150, 46, 176]],
-  [72, [242, 110, 40, 198]],
-  [86, [224, 58, 46, 218]],
-  [100, [170, 20, 84, 232]]
+  [0, [130, 150, 170, 0]],
+  [12, [176, 192, 150, 26]],
+  [24, [226, 214, 122, 62]],
+  [36, [244, 204, 96, 92]],
+  [48, [248, 184, 64, 118]],
+  [60, [248, 152, 48, 142]],
+  [72, [244, 112, 42, 164]],
+  [86, [230, 62, 48, 184]],
+  [100, [186, 26, 92, 200]]
 ];
 
 const CLOUD_STOPS = [
@@ -165,8 +165,19 @@ function paint(points, values, colorFn, size = 768, feather = 0.24, opts2 = {}) 
     for (let x = 0; x < size; x++) {
       const i = (y * size + x) * 4;
       const col = colorFn(Math.max(0, Math.min(100, field[y * size + x])));
-      let e = Math.min(Math.min(x, size - 1 - x) / band, Math.min(y, size - 1 - y) / band, 1);
+      /* 有机形状遮罩：以中心为圆心的不规则椭圆，边界用噪声扰动。
+         原来的矩形羽化会在地图上留下一个「方框」，改成这样看起来
+         像一片晚霞云，而不是一张贴在底图上的图片。 */
+      const nx = (x / (size - 1)) * 2 - 1;
+      const ny = (y / (size - 1)) * 2 - 1;
+      const rr = Math.sqrt(nx * nx + ny * ny);
+      const wob = (fbm(x / size * 3.2 + 91.7, y / size * 3.2 + 37.3) - 0.5) * 0.42;
+      let e = Math.max(0, Math.min(1, (1 - (rr + wob)) / 0.42));
       e = e * e * (3 - 2 * e);
+      /* 中尺度透明度起伏：让「云」有厚有薄、有断裂，
+         而不是一整片均匀的色块（只改透明度，不改分数）。 */
+      const veil = fbm(x / size * 5.5 + 211.3, y / size * 5.5 + 157.9);
+      e *= 0.62 + 0.38 * veil;
       img.data[i] = col[0];
       img.data[i + 1] = col[1];
       img.data[i + 2] = col[2];
@@ -563,7 +574,7 @@ function apply() {
         const bb = L.latLngBounds(viewBoundsOf(points));
         const size = map.getSize();
         const lonSpan = Math.max(0.2, bb.getEast() - bb.getWest());
-        const z = Math.log2(360 * (size.x * 0.8) / (256 * lonSpan));
+        const z = Math.log2(360 * (size.x * 0.95) / (256 * lonSpan));
         map.setView(bb.getCenter(), Math.max(3, Math.min(9, z)), { animate: false });
       } else {
         map.setView([city.lat, city.lon], 7);

@@ -6,8 +6,8 @@
    - 模式分歧越大，置信度越低
    所有因子都保留下来，前端可以逐条解释“为什么”。
    ============================================================ */
-import { clamp, sunTimes, sunPosition, moonPosition, moonIllumination, moonTimes, addDays, startOfLocalDay, phaseName } from "./astro.js?v=17";
-import { interpolator } from "./sources.js?v=17";
+import { clamp, sunTimes, sunPosition, moonPosition, moonIllumination, moonTimes, addDays, startOfLocalDay, phaseName } from "./astro.js?v=18";
+import { interpolator } from "./sources.js?v=18";
 
 const num = (v, d = null) => (Number.isFinite(v) ? v : d);
 const lerp = (a, b, k) => a + (b - a) * clamp(k, 0, 1);
@@ -70,7 +70,7 @@ export function glowFactors(cloud, ctx) {
   const horizon = clamp((100 - l) / 100, 0, 1);
   const gate = 0.10 + 0.90 * horizon;
   return {
-    total: clamp(base * (0.20 + 0.80 * canvas) * gate, 0, 100),
+    total: clamp(base * (0.35 + 0.65 * canvas) * gate, 0, 100),
     factors: f,
     raw: { high: h, mid: m, low: l, vis, aod, precip, dewDep },
     canvas, horizon, gate
@@ -192,7 +192,11 @@ export function evaluate(data, city, date = new Date()) {
       }
       /* 扫描要和最终评分用同一口径（集合为主），否则会出现
          「最终 62 分、窗口为空」这种自相矛盾。 */
-      let sBase = median(sc) || 0;
+      /* 取「更乐观的一侧」：ECMWF 集合中位数 vs 六个模式的均值。
+         实测两天上海：11-10 集合说好、模式说晴；11-11 反过来。
+         单看任何一边都会把真实发生过的好晚霞判成 25%。 */
+      const detMean = sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : 0;
+      let sBase = detMean;
       if (data.ensemble && data.ensemble.members.length) {
         const ens = [];
         for (const mem of data.ensemble.members) {
@@ -202,7 +206,7 @@ export function evaluate(data, city, date = new Date()) {
           ens.push(glowFactors({ low, mid, high }, qc).total);
         }
         const em = median(ens);
-        if (em != null) sBase = em * 0.9 + sBase * 0.1;
+        if (em != null) sBase = Math.max(em, detMean);
       }
       /* 太阳高度门控：日落后约 40 分钟（高度 < -8°）天已黑，
          云量再合适也不可能有晚霞；不加这个峰值会一路漂到窗口末端。 */
@@ -243,7 +247,7 @@ export function evaluate(data, city, date = new Date()) {
     }
     const scores = per.map((p) => p.score);
     const pModel = per.filter((p) => p.score >= 60).length / per.length;
-    let pEns = null, ensMedian = null, ensN = 0;
+    let pEns = null, ensMedian = null, ensN = 0, pEns55 = 0;
     if (data.ensemble && data.ensemble.members.length) {
       const ens = [];
       const memAvg = (arr) => {
@@ -256,6 +260,7 @@ export function evaluate(data, city, date = new Date()) {
         ens.push(glowFactors({ low, mid, high }, c).total);
       }
       ensN = ens.length;
+      pEns55 = ensN ? ens.filter((v) => v >= 55).length / ensN : 0;
       /* 成员不足 20 个时不用集合：残缺成员的中位数会把主分带偏，
          此时退回多模型中位数更稳。 */
       if (ensN >= 20) { pEns = ens.filter((s) => s >= 60).length / ensN; ensMedian = median(ens); }
@@ -264,11 +269,19 @@ export function evaluate(data, city, date = new Date()) {
        而 3–6 个确定性模式的中位数会被个别报晴空的模式拖死——
        11-10 上海就是 ECMWF 81、CMA/ICON 报无云，中位数只剩 36。 */
     const med = median(scores);
+    const detMean = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
     const altBest = sunPosition(marks[1], lat, lon).alt;
     const dayGateBest = clamp((altBest + 10) / 8, 0, 1);
-    const score = (ensMedian != null ? (ensMedian * 0.9 + med * 0.1) : med) * dayGateBest;
-    let prob = pEns != null ? pEns * 0.7 + pModel * 0.3 : pModel;
-    prob = clamp(prob * 100, 0, 95);
+    /* 主分：集合中位数与模式均值取更高的一侧。
+       ECMWF 集合只代表 ECMWF 一家的不确定性，遇到它整体偏晴/偏阴时
+       （11-10 偏晴、11-11 偏阴各一次）会把真实的好晚霞压到 25%。
+       取较高一侧 + 保留 dayGate，既不撒谎也不劝退。 */
+    const agg = Math.max(ensMedian != null ? ensMedian : -1, detMean);
+    const score = agg * dayGateBest;
+    /* 概率与指数同源：指数 60 大致对应六成把握。
+       集合里「够格」的成员比例只作为 15% 的修正，避免单一模式主导。 */
+    const pFromScore = clamp(score * 1.05, 0, 95);
+    const prob = clamp(pFromScore * 0.85 + (pEns55 || 0) * 100 * 0.15, 2, 95);
     const spread = stdev(scores);
     const agree = Math.max(pModel, 1 - pModel);
     const confidence = (spread <= 14 && agree >= 0.8) ? "high" : (spread <= 28 && agree >= 0.55) ? "mid" : "low";
@@ -278,7 +291,7 @@ export function evaluate(data, city, date = new Date()) {
     for (const k of ["high", "mid", "low"]) medCloud[k] = median(per.map((p) => p.cloud[k]));
     return {
       when: marks[1], time: marks[1], bestTime: marks[1], window,
-      score, prob: Math.round(prob), pModel, pEns, ensN,
+      score, prob: Math.round(prob), pModel, pEns, pEns55, ensN,
       spread, confidence, models: per, factors: medFactors, cloud: medCloud,
       ctx: c, median: med, ensMedian
     };
