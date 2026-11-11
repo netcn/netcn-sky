@@ -1,5 +1,5 @@
 /* ============================================================
-   netcn 统一运行时内核 · v20261111b1
+   netcn 统一运行时内核 · v20261111b3
    ------------------------------------------------------------
    五站共用一份：判站、明暗、中英字典、顶栏/页脚/搜索/无障碍文案、
    首页标题、移动端 App 底部 Tab、状态栏颜色、PWA 安装钩子。
@@ -116,9 +116,24 @@
   /* ---------- 2. 跨子域状态 ---------- */
   var LKEY = { game: 'arcade_lang' };
   var lkey = LKEY[key] || 'lang';
-  function get(n) { var m = (d.cookie || '').match('(?:^|; )' + n + '=([^;]*)'); return m ? decodeURIComponent(m[1]) : ''; }
+  /* 同名 cookie 可能并存：早期版本未设 Domain，留下了 host-only 版本；
+     之后又写了 .netcn.org 版本。浏览器发送时两者都会带上，取第一个会
+     读到旧值 → 表现为「切了暗色，回到某个站又变回去」。这里取最后一个
+     （同 path 下按创建时间排序，新写的在后），写入时先清掉两种旧值。 */
+  function get(n) {
+    var parts = (d.cookie || '').split(/;\s*/), out = '';
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i].indexOf('=');
+      if (p > 0 && parts[i].slice(0, p) === n) out = decodeURIComponent(parts[i].slice(p + 1));
+    }
+    return out;
+  }
   function put(n, v) {
     var dom = /(^|\.)netcn\.org$/.test(host) ? '; Domain=.netcn.org' : '';
+    try {
+      d.cookie = n + '=; Path=/; Max-Age=0; SameSite=Lax';
+      if (dom) d.cookie = n + '=; Path=/; Max-Age=0; SameSite=Lax' + dom;
+    } catch (e) {}
     d.cookie = n + '=' + encodeURIComponent(v) + '; Path=/; Max-Age=31536000; SameSite=Lax' + dom;
   }
   var ct = get('ncn_theme'), cl = get('ncn_lang');
@@ -322,11 +337,14 @@
     d.addEventListener('DOMContentLoaded', init);
   } else init();
 
-  /* 页面自有开关改完后写回全域 cookie */
+  /* 页面自有开关改完后写回全域 cookie。
+     只有用户真正选过主题（localStorage 有值）才写，避免把「首访跟随系统」
+     固化成用户选择——否则系统切换后就不再跟随，表现为「有时不保留」。 */
   function mirror() {
-    var t = r.getAttribute('data-theme') || curTheme();
+    var chosen = false;
+    try { chosen = !!validTheme(localStorage.getItem('theme')); } catch (e) {}
+    if (chosen) put('ncn_theme', r.getAttribute('data-theme') || curTheme());
     var l = null; try { l = localStorage.getItem(lkey); } catch (e) {}
-    if (t) put('ncn_theme', t);
     if (l) put('ncn_lang', l);
   }
   d.addEventListener('click', function (e) {

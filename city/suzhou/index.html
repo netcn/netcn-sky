@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8"><script id="ncn-theme-boot">(function(){try{var d=document.documentElement,t="";try{t=localStorage.getItem("theme")||""}catch(e){}if(t!=="dark"&&t!=="light"){var m=(document.cookie||"").match(/(?:^|; )ncn_theme=(dark|light)/);t=m?m[1]:""}if(t!=="dark"&&t!=="light"){t=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"}d.setAttribute("data-theme",t);if(t==="dark"){d.classList.add("dark")}else{d.classList.remove("dark")}}catch(e){}})();</script>
+<meta charset="utf-8"><script id="ncn-theme-boot">(function(){try{var d=document.documentElement,t="";var m=(document.cookie||"").match(/(?:^|; )ncn_theme=(dark|light)/g);if(m&&m.length){t=m[m.length-1].split("=")[1]||""}if(t!=="dark"&&t!=="light"){try{t=localStorage.getItem("theme")||""}catch(e){}}if(t!=="dark"&&t!=="light"){t=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"}d.setAttribute("data-theme",t);if(t==="dark"){d.classList.add("dark")}else{d.classList.remove("dark")}}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title data-zh="苏州今晚有晚霞吗？晚霞、星空与月亮观测 · 火烧云" data-en="Sunset glow in Suzhou tonight · stars, Moon and where to watch · SkyNow">苏州今晚有晚霞吗？晚霞、星空与月亮观测 · 火烧云</title>
 <meta name="description" data-zh="苏州今晚晚霞、朝霞、星空、月亮实时观测概率。苏州西边是太湖和穹窿山，水面开阔、光污染比市区低；古城里看晚霞，靠的是西向的湖面和低矮天际线。" data-en="Live tonight&#x27;s odds of sunset glow, dawn glow, stars and moonlight in Suzhou. Taihu Lake and Qionglong Mountain lie west of Suzhou — open water with less light pollution. In the old town, " content="苏州今晚晚霞、朝霞、星空、月亮实时观测概率。苏州西边是太湖和穹窿山，水面开阔、光污染比市区低；古城里看晚霞，靠的是西向的湖面和低矮天际线。">
@@ -17,9 +17,9 @@
 <link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192">
 <link rel="stylesheet" href="/assets/css/sky.css?v=10">
 <link rel="stylesheet" href="/assets/css/city.css?v=2">
-<link rel="stylesheet" href="/shell/netcn-shell.css?v=20261111b1">
-<link rel="stylesheet" href="/shell/netcn-ui.css?v=20261111b1">
-<script src="/shell/shell.js?v=20261111b1"></script>
+<link rel="stylesheet" href="/shell/netcn-shell.css?v=20261111b3">
+<link rel="stylesheet" href="/shell/netcn-ui.css?v=20261111b3">
+<script src="/shell/shell.js?v=20261111b3"></script>
 <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "WebPage", "name": "苏州今晚有晚霞吗？晚霞、星空与月亮观测 · 火烧云", "description": "苏州今晚晚霞、朝霞、星空、月亮实时观测概率。苏州西边是太湖和穹窿山，水面开阔、光污染比市区低；古城里看晚霞，靠的是西向的湖面和低矮天际线。", "url": "https://sky.netcn.org/city/suzhou/", "inLanguage": ["zh-CN", "en"], "about": {"@type": "Place", "name": "苏州", "geo": {"@type": "GeoCoordinates", "latitude": 31.2989, "longitude": 120.5853}}, "isPartOf": {"@type": "WebSite", "name": "火烧云", "url": "https://sky.netcn.org/"}}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "苏州今晚几点日落？", "acceptedAnswer": {"@type": "Answer", "text": "页面顶部会按当天日期实时计算。最佳晚霞窗口是日落前 10 分钟到日落后 25 分钟，别只盯着日落那一刻。"}}, {"@type": "Question", "name": "苏州哪里能看到银河？", "acceptedAnswer": {"@type": "Answer", "text": "市区光污染约 Bortle 8，银河基本看不到；往西到太湖西山、穹窿山，优先 太湖西山岛、穹窿山，并避开满月。"}}]}]</script>
 </head>
 <body data-city="suzhou">
