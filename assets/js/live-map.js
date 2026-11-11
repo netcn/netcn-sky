@@ -6,7 +6,7 @@
    - 台风：NASA EONET 最新记录位置
    地图按需初始化（进入视口才加载 Leaflet 实例与瓦片），不拖首屏。
    ============================================================ */
-import { fmtHM, parseLocal } from "./astro.js?v=18";
+import { fmtHM, parseLocal } from "./astro.js?v=19";
 
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
 const BASEMAPS = {
@@ -288,6 +288,20 @@ function init(el) {
   } catch (e) {}
 
   base = L.tileLayer(BASEMAPS[baseKind], { maxZoom: 16, attribution: "" }).addTo(map);
+  /* 底图兜底：Esri 在部分网络下会被挡或超时，连续失败就换一个源，
+     否则用户看到的是「一块深色底 + 一团晚霞」，会以为地图坏了。 */
+  let baseErrs = 0;
+  let swapped = false;
+  base.on("tileerror", () => {
+    if (swapped || ++baseErrs < 5) return;
+    swapped = true;
+    try {
+      map.removeLayer(base);
+      base = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+        { maxZoom: 16, subdomains: "abcd", attribution: "" }).addTo(map);
+      if (base.bringToBack) base.bringToBack();
+    } catch (e) {}
+  });
   map.attributionControl.setPrefix(false);
   map.attributionControl.addAttribution('<a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> · <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>');
   L.control.zoom({ position: "topright" }).addTo(map);
