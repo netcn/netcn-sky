@@ -17,16 +17,18 @@ const BASEMAPS = {
 const BASE_KEY = "sky_map_base_v1";
 const RADAR_TTL = 5 * 60 * 1000;
 
+/* 晚霞色带：低分区接近透明，40 分起米黄，60 分橙，80 分以上红。
+   与截图程序的黄→橙→红一致，比旧版更暖、覆盖更实。 */
 const GLOW_STOPS = [
-  [0, [70, 102, 140, 0]],
-  [10, [76, 112, 152, 104]],
-  [22, [96, 130, 150, 148]],
-  [32, [150, 150, 128, 174]],
-  [44, [214, 190, 104, 178]],
-  [56, [244, 186, 78, 204]],
-  [70, [246, 142, 54, 224]],
-  [84, [228, 74, 58, 236]],
-  [100, [168, 24, 108, 244]]
+  [0, [90, 120, 150, 0]],
+  [10, [96, 130, 158, 74]],
+  [22, [122, 148, 150, 124]],
+  [34, [188, 176, 116, 162]],
+  [46, [232, 196, 92, 188]],
+  [58, [246, 168, 62, 212]],
+  [72, [246, 126, 42, 230]],
+  [86, [228, 62, 48, 242]],
+  [100, [178, 20, 86, 248]]
 ];
 
 const CLOUD_STOPS = [
@@ -94,7 +96,7 @@ function viewBoundsOf(points) {
   const { lats, lons } = meta(points);
   return [[lats[0], lons[0]], [lats[lats.length - 1], lons[lons.length - 1]]];
 }
-function paint(points, values, colorFn, size = 168, feather = 0.2) {
+function paint(points, values, colorFn, size = 384, feather = 0.16) {
   const { rows, cols } = meta(points);
   const cv = document.createElement("canvas");
   cv.width = cv.height = size;
@@ -132,7 +134,14 @@ function paint(points, values, colorFn, size = 168, feather = 0.2) {
     }
   }
   ctx.putImageData(img, 0, 0);
-  return cv.toDataURL("image/png");
+  /* 双线性把 9×9 拉成整幅后仍会留下折线感，再叠一层高斯模糊，
+     让等值面像连续云图而不是方格。 */
+  const out = document.createElement("canvas");
+  out.width = out.height = size;
+  const octx = out.getContext("2d");
+  try { octx.filter = "blur(" + Math.max(4, Math.round(size / 48)) + "px)"; } catch (e) {}
+  octx.drawImage(cv, 0, 0);
+  return out.toDataURL("image/png");
 }
 
 /* ---------- 状态 ---------- */
@@ -313,13 +322,13 @@ function apply() {
     }
     const b = boundsOf(opts.points);
     if (!glowLayer) {
-      glowLayer = L.imageOverlay(url, b, { pane: "glowPane", opacity: 0.68, interactive: false });
+      glowLayer = L.imageOverlay(url, b, { pane: "glowPane", opacity: 0.74, interactive: false });
       glowLayer.addTo(map);
     } else {
       glowLayer.setUrl(url);
       glowLayer.setBounds(b);
     }
-    glowLayer.setOpacity(opts.glowOn === false ? 0 : 0.68);
+    glowLayer.setOpacity(opts.glowOn === false ? 0 : 0.74);
   }
 
   // 城市标注
@@ -345,8 +354,10 @@ function apply() {
         permanent: true, direction: "right", className: "lm-city", offset: [5, 0]
       }).addTo(cityGroup);
   }
+  const hereScore = scoreAt(points, city.lat, city.lon);
   L.circleMarker([city.lat, city.lon], { radius: 5.5, color: "#fff", weight: 2, fillColor: "#d1432a", fillOpacity: 1 })
-    .bindTooltip(opts.cityLabel || labelOf(city), { permanent: true, direction: "top", className: "lm-city me", offset: [0, -6] })
+    .bindTooltip(`${opts.cityLabel || labelOf(city)}${hereScore != null ? `<em>${hereScore}</em>` : ""}`,
+      { permanent: true, direction: "top", className: "lm-city me", offset: [0, -6] })
     .addTo(cityGroup);
   if (!compact || map.getZoom() > 5) cityGroup.addTo(map);
 

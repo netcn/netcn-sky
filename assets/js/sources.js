@@ -206,11 +206,15 @@ export async function loadSky(lat, lon, opts = {}) {
 }
 
 /* ---------- ⑥ 区域网格（晚霞地图） ---------- */
-const GRID_N = 5;
-const GRID_STEP = 0.75; // 度；按纬度修正经度间距，约 70–75 公里
+/* 网格：7×7 / 0.5°（约 55km，覆盖 ±1.5°≈330km），配合插值与模糊消除方格感。
+   云量改用 ECMWF 集合（51 成员）——与首页主评分同一口径，
+   否则会出现「卡片 65、地图上上海 38」这种自相矛盾。
+   缓存前缀升到 v3，避免读到旧的 5×5 确定性结果。 */
+const GRID_N = 7;
+const GRID_STEP = 0.5; // 度；按纬度修正经度间距，约 48–55 公里
 const GRID_MODELS = ["ecmwf_ifs025", "cma_grapes_global", "icon_seamless"];
 const GRID_TTL = 20 * 60 * 1000;
-const GRID_PREFIX = "sky_grid_v1_";
+const GRID_PREFIX = "sky_grid_v4_";
 
 export async function loadGrid(lat, lon, opts = {}) {
   const key = GRID_PREFIX + lat.toFixed(2) + "_" + lon.toFixed(2);
@@ -238,7 +242,11 @@ export async function loadGrid(lat, lon, opts = {}) {
   }
   const base = `latitude=${pts.map((p) => p.lat).join(",")}&longitude=${pts.map((p) => p.lon).join(",")}`
     + `&timezone=Asia%2FShanghai&forecast_days=1`;
-  const cloudUrl = `${API}?${base}&hourly=cloud_cover_low,cloud_cover_mid,cloud_cover_high&models=${GRID_MODELS.join(",")}`;
+  /* 云量用 ECMWF 确定性单模型：49 点 × 51 成员的集合请求会触发
+     Open-Meteo 的分钟级限流（实测 429），不可行。
+     地图的空间形态来自确定性高分辨率网格，整体水平由 app.js 用
+     「集合中位数 − ECMWF 确定性」的偏差做校正，保证与首页同口径。 */
+  const cloudUrl = `${API}?${base}&hourly=cloud_cover_low,cloud_cover_mid,cloud_cover_high&models=ecmwf_ifs025`;
   const ctxUrl = `${API}?${base}&hourly=visibility,precipitation_probability,dew_point_2m,temperature_2m`;
   const [cloud, ctxRaw] = await Promise.all([getJSON(cloudUrl, 35000), getJSON(ctxUrl, 35000)]);
   const cloudArr = Array.isArray(cloud) ? cloud : [cloud];
@@ -246,19 +254,20 @@ export async function loadGrid(lat, lon, opts = {}) {
   const points = pts.map((p, idx) => {
     const h = (cloudArr[idx] && cloudArr[idx].hourly) || {};
     const c = (ctxArr[idx] && ctxArr[idx].hourly) || {};
-    const models = GRID_MODELS.filter((m) => {
-      const v = h["cloud_cover_low_" + m];
-      return Array.isArray(v) && v.some((x) => x != null);
-    }).map((m) => ({
-      id: m,
-      low: nums(h["cloud_cover_low_" + m]),
-      mid: nums(h["cloud_cover_mid_" + m]),
-      high: nums(h["cloud_cover_high_" + m])
-    }));
+    /* 单模型请求时 Open-Meteo 返回不带模型后缀的字段名；
+       多模型时才加 _ecmwf_ifs025。两种都兼容。 */
+    const pick = (k) => nums(h[k + "_ecmwf_ifs025"] || h[k] || []);
+    const models = [{
+      id: "ecmwf_ifs025",
+      low: pick("cloud_cover_low"),
+      mid: pick("cloud_cover_mid"),
+      high: pick("cloud_cover_high")
+    }].filter((m) => m.low.some((x) => x != null));
     return {
       lat: p.lat,
       lon: p.lon,
       times: timeAxis(h.time),
+      members: [],
       models,
       ctx: {
         times: timeAxis(c.time),

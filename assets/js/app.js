@@ -265,7 +265,19 @@ async function loadExtras(force = false) {
   ]);
   if (g.status === "fulfilled") {
     S.grid = g.value;
-    S.gridScores = scoreGrid(g.value, ev.sun.sunset, ev.evening ? ev.evening.ctx.aod : 0.2);
+    const raw = scoreGrid(g.value, ev.sun.sunset, ev.evening ? ev.evening.ctx.aod : 0.2);
+    /* 偏差校正：网格是 ECMWF 确定性，首页主分是集合中位数。
+       不加这一步会出现「卡片 65、地图上上海 38」的自相矛盾。 */
+    const ecModel = ev.evening && ev.evening.models
+      ? ev.evening.models.find((m) => m.id === "ecmwf_ifs025") : null;
+    /* 偏差限幅 ±25：模型分歧极大时（今天 ECMWF 20、集合 68）
+       不设上限会把整张图推到 100 分。 */
+    const offset = (ev.evening && ev.evening.ensMedian != null && ecModel)
+      ? Math.max(-25, Math.min(25, ev.evening.ensMedian - ecModel.score)) : 0;
+    S.gridScores = raw.map((p) => ({
+      ...p,
+      score: Math.max(0, Math.min(100, p.score + offset))
+    }));
     S.mapError = false;
   } else {
     console.warn("grid", g.reason);
@@ -566,10 +578,13 @@ function renderDetail() {
       <div class="sky-factor-val">${val}</div>
     </div>`;
   }).join("");
+  const bestHM = node.when ? fmtHM(node.when, 8) : null;
+  const winHM = node.window ? `${fmtHM(node.window.start, 8)}–${fmtHM(node.window.end, 8)}` : null;
+  const above = node.models ? node.models.filter((m) => m.score >= 60).length : 0;
   const head = isGlow
     ? (lang() === "en"
-      ? `<b>${node.prob}%</b> chance · typical score ${round(node.score)} · ${node.models.filter((m) => m.score >= 60).length}/${node.models.length} models above 60`
-      : `<b>${node.prob}%</b> 概率 · 典型评分 ${round(node.score)} · 6 个模式中 ${node.models.filter((m) => m.score >= 60).length} 个达到 60 分`)
+      ? `<b>${node.prob}%</b> chance · typical ${round(node.score)}${bestHM ? ` · best ${bestHM}` : ""}${winHM ? ` · window ${winHM}` : ""} · ${above}/${node.models.length} models ≥60`
+      : `<b>${node.prob}%</b> 概率 · 典型 ${round(node.score)}${bestHM ? ` · 最佳 ${bestHM}` : ""}${winHM ? ` · 可看 ${winHM}` : ""} · ${above}/${node.models.length} 个模式 ≥60 分`)
     : `<b>${round(node.score)}</b> ${t().index}`;
   body.innerHTML = `<div class="sky-detail-head">${head}</div>${rows}<ul class="sky-explain">${whyList(ev, S.sel).map((x) => `<li>${x}</li>`).join("")}</ul>`;
 }

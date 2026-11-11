@@ -6,7 +6,7 @@
    - 模式分歧越大，置信度越低
    所有因子都保留下来，前端可以逐条解释“为什么”。
    ============================================================ */
-import { clamp, sunTimes, moonPosition, moonIllumination, moonTimes, addDays, startOfLocalDay, phaseName } from "./astro.js";
+import { clamp, sunTimes, sunPosition, moonPosition, moonIllumination, moonTimes, addDays, startOfLocalDay, phaseName } from "./astro.js";
 import { interpolator } from "./sources.js";
 
 const num = (v, d = null) => (Number.isFinite(v) ? v : d);
@@ -21,13 +21,16 @@ function pieceHigh(h) {
   if (h <= 85) return lerp(92, 55, (h - 70) / 15);
   return lerp(55, 5, (h - 85) / 15);
 }
+/* 中云：火烧云主要靠高云被夕阳照亮，中云不是必需品。
+   过去把「中云 0%」判成 15 分，等于把最典型的干净晚霞判成缺陷；
+   现在 0–20% 给 55→82，20–40% 才是最佳，60% 以上才明显扣分。 */
 function pieceMid(m) {
-  if (m < 5) return 15;
-  if (m < 20) return lerp(15, 70, (m - 5) / 15);
-  if (m <= 40) return lerp(70, 100, (m - 20) / 20);
-  if (m <= 60) return lerp(100, 82, (m - 40) / 20);
-  if (m <= 80) return lerp(82, 40, (m - 60) / 20);
-  return lerp(40, 5, (m - 80) / 20);
+  if (m < 5) return 55;
+  if (m < 20) return lerp(55, 82, (m - 5) / 15);
+  if (m <= 40) return lerp(82, 100, (m - 20) / 20);
+  if (m <= 60) return lerp(100, 85, (m - 40) / 20);
+  if (m <= 80) return lerp(85, 45, (m - 60) / 20);
+  return lerp(45, 10, (m - 80) / 20);
 }
 const pieceLow = (l) => clamp(100 - l * 1.5, 0, 100);
 const pieceVis = (v) => clamp((v - 5) / 20 * 100, 0, 100);
@@ -61,10 +64,11 @@ export function glowFactors(cloud, ctx) {
     + f.vis * 0.10 + f.aod * 0.08 + f.precip * 0.07 + f.dew * 0.05;
   // ① 没有云就没有火烧云：云量作为“画布”门槛
   const canvas = clamp((h * 0.65 + m * 0.35) / 25, 0, 1);
-  // ② 地平线被低云封死、或中层云把太阳完全挡住时，其他条件再好也没用
+  // ② 唯一的硬门槛是低云封死地平线（太阳被挡住，天上再多高云也没用）。
+  //    旧版这里还乘了一个用「中云适宜度」算的 openSky，等于对无中云的
+  //    干净晚霞二次惩罚；现在只按低云遮挡。
   const horizon = clamp((100 - l) / 100, 0, 1);
-  const openSky = 0.55 + 0.45 * (f.mid / 100);
-  const gate = (0.30 + 0.70 * horizon) * openSky;
+  const gate = 0.10 + 0.90 * horizon;
   return {
     total: clamp(base * (0.20 + 0.80 * canvas) * gate, 0, 100),
     factors: f,
@@ -118,7 +122,8 @@ export function scoreGrid(grid, sunset, aod = 0.2) {
     };
     ctx.dewDep = (ctx.temp != null && ctx.dew != null) ? ctx.temp - ctx.dew : 3;
     const scores = [];
-    for (const m of p.models) {
+    const list = (p.members && p.members.length) ? p.members : (p.models || []);
+    for (const m of list) {
       const it = (arr) => interpolator(p.times, arr);
       const cloud = {
         low: avg((s) => it(m.low)(s)),
@@ -127,7 +132,8 @@ export function scoreGrid(grid, sunset, aod = 0.2) {
       };
       scores.push(glowFactors(cloud, ctx).total);
     }
-    const score = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    /* 与首页一致：集合成员取中位数，不用平均（平均会被少数极端成员拉偏）。 */
+    const score = scores.length ? (median(scores) ?? 0) : 0;
     return { lat: p.lat, lon: p.lon, score: clamp(score, 0, 100) };
   });
 }
@@ -167,8 +173,51 @@ export function evaluate(data, city, date = new Date()) {
   // 取一个小窗口平均，比只取日落那一刻更稳，也不会被单小时噪声带偏。
   function evalGlow(when, dir) {
     if (!when) return null;
-    const offsets = dir === "morning" ? [-30, -12, 6] : [-10, 10, 26];
+    /* 先以 5 分钟为步长扫一遍窗口，找峰值时刻，再在峰值附近取三点平均。
+       旧版固定取 -10/+10/+26，遇到峰值偏移时会低估，也给不出「可看时段」。 */
+    const step = 5;
+    const from = dir === "morning" ? -40 : -25;
+    const to = dir === "morning" ? 10 : 35;
+    const quick = [];
+    for (let off = from; off <= to; off += step) {
+      const t = new Date(when.getTime() + off * 60000);
+      const qc = withDew({
+        visibility: ctxAt(t).visibility, precip: ctxAt(t).precip,
+        dew: ctxAt(t).dew, temp: ctxAt(t).temp, aod: ctxAt(t).aod
+      });
+      const sc = [];
+      for (const m of data.models) {
+        const it = modelAt(m);
+        sc.push(glowFactors({ low: it.low(t), mid: it.mid(t), high: it.high(t) }, qc).total);
+      }
+      /* 扫描要和最终评分用同一口径（集合为主），否则会出现
+         「最终 62 分、窗口为空」这种自相矛盾。 */
+      let sBase = median(sc) || 0;
+      if (data.ensemble && data.ensemble.members.length) {
+        const ens = [];
+        for (const mem of data.ensemble.members) {
+          const it = (arr) => interpolator(data.ensemble.times, arr)(t);
+          const low = it(mem.low), mid = it(mem.mid), high = it(mem.high);
+          if (low == null && mid == null && high == null) continue;
+          ens.push(glowFactors({ low, mid, high }, qc).total);
+        }
+        const em = median(ens);
+        if (em != null) sBase = em * 0.9 + sBase * 0.1;
+      }
+      /* 太阳高度门控：日落后约 40 分钟（高度 < -8°）天已黑，
+         云量再合适也不可能有晚霞；不加这个峰值会一路漂到窗口末端。 */
+      const alt = sunPosition(t, lat, lon).alt;
+      const dayGate = clamp((alt + 10) / 8, 0, 1);
+      quick.push({ off, t, s: sBase * dayGate });
+    }
+    const best = quick.reduce((a, b) => (b.s > a.s ? b : a));
+    const offsets = [best.off - step, best.off, best.off + step];
     const marks = offsets.map((m) => new Date(when.getTime() + m * 60000));
+    const winThreshold = Math.max(40, best.s * 0.75);
+    const inWindow = quick.filter((q) => q.s >= winThreshold);
+    const window = inWindow.length
+      ? { start: inWindow[0].t, end: inWindow[inWindow.length - 1].t, threshold: winThreshold }
+      : null;
     const avgOf = (fn) => {
       const v = marks.map(fn).filter((x) => x != null);
       return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
@@ -207,11 +256,18 @@ export function evaluate(data, city, date = new Date()) {
         ens.push(glowFactors({ low, mid, high }, c).total);
       }
       ensN = ens.length;
-      if (ensN) { pEns = ens.filter((s) => s >= 60).length / ensN; ensMedian = median(ens); }
+      /* 成员不足 20 个时不用集合：残缺成员的中位数会把主分带偏，
+         此时退回多模型中位数更稳。 */
+      if (ensN >= 20) { pEns = ens.filter((s) => s >= 60).length / ensN; ensMedian = median(ens); }
     }
+    /* 主分以 ECMWF 集合中位数为主：51 个成员能反映真实不确定性，
+       而 3–6 个确定性模式的中位数会被个别报晴空的模式拖死——
+       11-10 上海就是 ECMWF 81、CMA/ICON 报无云，中位数只剩 36。 */
     const med = median(scores);
-    const score = pEns != null ? (med * 0.5 + ensMedian * 0.5) : med;
-    let prob = pEns != null ? pEns * 0.55 + pModel * 0.45 : pModel;
+    const altBest = sunPosition(marks[1], lat, lon).alt;
+    const dayGateBest = clamp((altBest + 10) / 8, 0, 1);
+    const score = (ensMedian != null ? (ensMedian * 0.9 + med * 0.1) : med) * dayGateBest;
+    let prob = pEns != null ? pEns * 0.7 + pModel * 0.3 : pModel;
     prob = clamp(prob * 100, 0, 95);
     const spread = stdev(scores);
     const agree = Math.max(pModel, 1 - pModel);
@@ -221,7 +277,8 @@ export function evaluate(data, city, date = new Date()) {
     const medCloud = {};
     for (const k of ["high", "mid", "low"]) medCloud[k] = median(per.map((p) => p.cloud[k]));
     return {
-      when, time: when, score, prob: Math.round(prob), pModel, pEns, ensN,
+      when: marks[1], time: marks[1], bestTime: marks[1], window,
+      score, prob: Math.round(prob), pModel, pEns, ensN,
       spread, confidence, models: per, factors: medFactors, cloud: medCloud,
       ctx: c, median: med, ensMedian
     };
