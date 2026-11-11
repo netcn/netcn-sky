@@ -130,7 +130,7 @@
 @media (prefers-reduced-motion:reduce){.nc-shell *,.nc-inner *,.nc-foot *{transition:none!important}}
 
 /* ============================================================
-   移动端 App 壳（v20261110a1）
+   移动端 App 壳（v20261111b1）
    DOM 由 shell.js 统一注入 .nc-tabbar，五站共用同一份样式。
    统一断点：≤768px 进入 App 模式；顶栏收成「品牌 + 搜索 + 工具」一行，
    五站切换交给底部 Tab；桌面完全不受影响（.nc-tabbar 默认 display:none）。

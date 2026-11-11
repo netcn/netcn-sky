@@ -1,5 +1,5 @@
 /* ============================================================
-   netcn 统一运行时内核 · v20261110a1
+   netcn 统一运行时内核 · v20261111b1
    ------------------------------------------------------------
    五站共用一份：判站、明暗、中英字典、顶栏/页脚/搜索/无障碍文案、
    首页标题、移动端 App 底部 Tab、状态栏颜色、PWA 安装钩子。
@@ -46,7 +46,7 @@
   /* ---------- 1. 全站中英字典（唯一真源） ---------- */
   var I18N = {
     zh: {
-      site: { nav: '导航', ask: '科学问答', quiz: '头脑体操', game: '玩游戏', sky: '火烧云' },
+      site: { nav: '导航', ask: '科学问答', quiz: '头脑体操', game: '游戏厅', sky: '火烧云' },
       tab: { nav: '首页', ask: '问答', quiz: '脑力', game: '游戏', sky: '观天' },
       brand: { nav: '简洁导航', ask: '科学问答', quiz: '头脑体操', game: '游戏厅', sky: '火烧云' },
       ph: {
@@ -65,7 +65,7 @@
         nav: '简洁导航 - 纯净无广告上网首页 | netcn.org',
         ask: '问答 · 科学冒险百科 · Ask · Science Q&A Encyclopedia',
         quiz: '头脑体操 - 脑筋急转弯·猜字谜·猜谜语·智力测试',
-        game: '游戏街机厅 · ARCADE HALL',
+        game: '游戏厅 · 53 款游戏 | netcn.org',
         sky: '火烧云 · 今晚晚霞、朝霞、星空、月亮观测指南'
       },
       themeDark: '切换为深色', themeLight: '切换为浅色',
@@ -128,7 +128,18 @@
   } catch (e) {}
 
   function sysDark() { try { return !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); } catch (e) { return false; } }
-  function curTheme() { return r.getAttribute('data-theme') || (function () { try { return localStorage.getItem('theme'); } catch (e) { return null; } })() || (sysDark() ? 'dark' : 'light'); }
+  function validTheme(v) { return v === 'dark' || v === 'light' ? v : ''; }
+  /* 优先级：运行时已应用的 data-theme → 本域记忆 → 全域 cookie → 系统偏好。
+     cookie 兜底是为了跨子域：五个站 localStorage 互不相通，只有 .netcn.org 的
+     cookie 能把「用户在别的站选过的明暗」带过来。 */
+  function curTheme() {
+    var a = validTheme(r.getAttribute('data-theme'));
+    if (a) return a;
+    try { var s = validTheme(localStorage.getItem('theme')); if (s) return s; } catch (e) {}
+    var c = validTheme(get('ncn_theme'));
+    if (c) return c;
+    return sysDark() ? 'dark' : 'light';
+  }
   var DEFLANG = { quiz: 'zh' };
   function curLang() {
     var s = null; try { s = localStorage.getItem(lkey); } catch (e) {}
@@ -287,6 +298,17 @@
     buildTab(curLang());
     applyI18n(curLang());
     initInstall();
+    /* 首次访问（用户从未手动选过）时跟随系统明暗；一旦点过切换，就以用户选择为准。 */
+    try {
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      var followSystem = function () {
+        var chosen = false;
+        try { chosen = !!validTheme(localStorage.getItem('theme')); } catch (e) {}
+        if (!chosen && !get('ncn_theme')) applyTheme(mq.matches ? 'dark' : 'light', true);
+      };
+      if (mq.addEventListener) mq.addEventListener('change', followSystem);
+      else if (mq.addListener) mq.addListener(followSystem);
+    } catch (e) {}
     d.addEventListener('click', function (e) {
       var b = e.target && e.target.closest ? e.target.closest('#ncTheme,#ncLang') : null;
       if (!b) return;
