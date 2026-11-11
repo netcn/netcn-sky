@@ -234,8 +234,9 @@ export async function loadSky(lat, lon, opts = {}) {
    云量改用 ECMWF 集合（51 成员）——与首页主评分同一口径，
    否则会出现「卡片 65、地图上上海 38」这种自相矛盾。
    缓存前缀升到 v3，避免读到旧的 5×5 确定性结果。 */
-const GRID_N = 9;
-const GRID_STEP = 0.55; // 度；按纬度修正经度间距，约 54–60 公里，覆盖 ±2.2°
+const GRID_N = 9;      // 桌面：9×9 = 81 点，覆盖 ±2.2°（约 500 公里）
+const GRID_N_MOBILE = 7; // 手机：7×7 = 49 点，省 40% 额度，小屏也看不出差别
+const GRID_STEP = 0.55; // 度；按纬度修正经度间距，约 54–60 公里
 const GRID_MODELS = ["ecmwf_ifs025", "cma_grapes_global", "icon_seamless"];
 /* 网格只服务地图图层，变化慢、体积大：缓存 90 分钟，并允许陈旧兜底。
    Open-Meteo 免费额度按「请求数 × 坐标数」计，9×9=81 点一次就吃 81 个额度，
@@ -244,7 +245,8 @@ const GRID_TTL = 90 * 60 * 1000;
 const GRID_PREFIX = "sky_grid_v5_";
 
 export async function loadGrid(lat, lon, opts = {}) {
-  const key = GRID_PREFIX + lat.toFixed(2) + "_" + lon.toFixed(2);
+  const n = (typeof window !== "undefined" && window.innerWidth < 700) ? GRID_N_MOBILE : GRID_N;
+  const key = GRID_PREFIX + n + "_" + lat.toFixed(2) + "_" + lon.toFixed(2);
   let cachedRaw = null;
   try {
     const raw = localStorage.getItem(key);
@@ -256,7 +258,7 @@ export async function loadGrid(lat, lon, opts = {}) {
   }
   const cos = Math.max(0.3, Math.cos(lat * Math.PI / 180));
   const pts = [];
-  const half = (GRID_N - 1) / 2;
+  const half = (n - 1) / 2;
   for (let j = -half; j <= half; j++) {
     for (let i = -half; i <= half; i++) {
       pts.push({
