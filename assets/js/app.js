@@ -274,9 +274,13 @@ async function loadExtras(force = false) {
        不设上限会把整张图推到 100 分。 */
     const offset = (ev.evening && ev.evening.ensMedian != null && ecModel)
       ? Math.max(-25, Math.min(25, ev.evening.ensMedian - ecModel.score)) : 0;
+    /* 上限锁在中心点评分 +30：区域网格只用来表达「哪里相对更好」，
+       不能让北边某个格点显示 95 分、而卡片上上海只有 25%，
+       那会直接误导。11-10 这类真正的好晚霞（中心 76）不受影响。 */
+    const cap = Math.min(100, (ev.evening ? ev.evening.score : 50) + 30);
     S.gridScores = raw.map((p) => ({
       ...p,
-      score: Math.max(0, Math.min(100, p.score + offset))
+      score: Math.max(0, Math.min(cap, p.score + offset))
     }));
     S.mapError = false;
   } else {
