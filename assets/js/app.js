@@ -337,9 +337,13 @@ function renderHero() {
   $("#verdictTitle").textContent = v.title;
   $("#verdictText").textContent = v.text;
   const upd = S.data && S.data.updated ? new Date(S.data.updated) : null;
-  $("#updateTime").textContent = upd
-    ? `${t().updated} ${fmtHM(upd, 8)}${t().tzTag}${S.data.cached ? t().cachedTag : ""}`
-    : "—";
+  const updEl = $("#updateTime");
+  if (updEl) {
+    updEl.textContent = upd
+      ? `${t().updated} ${fmtHM(upd, 8)}${t().tzTag}${S.data.cached ? t().cachedTag : ""}`
+      : "—";
+    updEl.title = t().tzName;
+  }
   const rb = $("#refreshBtn");
   if (rb) { rb.textContent = S.refreshing ? t().updating : t().refresh; rb.disabled = S.refreshing; }
   const gb = $("#geoBtn");
