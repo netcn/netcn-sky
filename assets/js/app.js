@@ -2,11 +2,11 @@
    火烧云 · 页面逻辑
    数据 → 评分 → 渲染；城市默认上海，可切换/定位。
    ============================================================ */
-import { loadSky, loadGrid, loadStorms, loadOfficialTracks, matchOfficialTrack, reverseName, interpolator } from "./sources.js?v=19";
-import { evaluate, glowFactors, scoreGrid } from "./scoring.js?v=19";
-import { CITIES, DEFAULT_CITY, cityById, nearestCity, cityLabel } from "./cities.js?v=19";
-import { fmtHM, phaseName } from "./astro.js?v=19";
-import { updateLiveMap, setMapLoading } from "./live-map.js?v=19";
+import { loadSky, loadGrid, loadStorms, loadOfficialTracks, matchOfficialTrack, reverseName, interpolator } from "./sources.js?v=20";
+import { evaluate, glowFactors, scoreGrid } from "./scoring.js?v=20";
+import { CITIES, DEFAULT_CITY, cityById, nearestCity, cityLabel } from "./cities.js?v=20";
+import { fmtHM, phaseName } from "./astro.js?v=20";
+import { updateLiveMap, setMapLoading } from "./live-map.js?v=20";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));

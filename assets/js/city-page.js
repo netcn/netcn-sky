@@ -1,10 +1,10 @@
 /* ============================================================
    城市落地页：读取该城市今晚的实时评分，并跟随家族中英切换
    ============================================================ */
-import { CITIES } from "./cities.js?v=19";
-import { loadSky } from "./sources.js?v=19";
-import { evaluate } from "./scoring.js?v=19";
-import { fmtHM, phaseName } from "./astro.js?v=19";
+import { CITIES } from "./cities.js?v=20";
+import { loadSky } from "./sources.js?v=20";
+import { evaluate } from "./scoring.js?v=20";
+import { fmtHM, phaseName } from "./astro.js?v=20";
 
 const $ = (s) => document.querySelector(s);
 const city = CITIES.find((c) => c.id === document.body.dataset.city);

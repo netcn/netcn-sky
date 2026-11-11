@@ -6,12 +6,16 @@
    - 台风：NASA EONET 最新记录位置
    地图按需初始化（进入视口才加载 Leaflet 实例与瓦片），不拖首屏。
    ============================================================ */
-import { fmtHM, parseLocal } from "./astro.js?v=19";
+import { fmtHM, parseLocal } from "./astro.js?v=20";
 
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
+/* 底图可用性：Esri 在中国大陆经常被墙或超时（实测 2026-11-11 直接加载失败），
+   OSM 与高德可用。所以「街道」默认走 OSM（免密钥、允许署名使用），
+   「卫星/深色」仍用 Esri，但连续失败会自动回落到 OSM，避免出现一块空底图。 */
+const OSM = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const BASEMAPS = {
   sat: ESRI + "World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  street: ESRI + "World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+  street: OSM,
   dark: ESRI + "Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
 };
 const BASE_KEY = "sky_map_base_v1";
@@ -233,7 +237,7 @@ let stormGroup = null;
 let opts = null;
 let observer = null;
 let lastViewKey = "";
-let baseKind = "sat";
+let baseKind = "street";
 let radarOn = true;
 let radarMeta = null;
 let radarLayers = new Map();
@@ -297,13 +301,17 @@ function init(el) {
     swapped = true;
     try {
       map.removeLayer(base);
-      base = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-        { maxZoom: 16, subdomains: "abcd", attribution: "" }).addTo(map);
+      base = L.tileLayer(OSM, { maxZoom: 16, attribution: "" }).addTo(map);
       if (base.bringToBack) base.bringToBack();
+      /* 同步按钮状态，免得「选着卫星、显示街道」 */
+      baseKind = "street";
+      document.querySelectorAll("[data-base]").forEach((b) => {
+        b.classList.toggle("on", b.dataset.base === "street");
+      });
     } catch (e) {}
   });
   map.attributionControl.setPrefix(false);
-  map.attributionControl.addAttribution('<a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> · <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>');
+  map.attributionControl.addAttribution('<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a> · <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> · <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>');
   L.control.zoom({ position: "topright" }).addTo(map);
 
   const el2 = el.closest(".sky-map-shell");
