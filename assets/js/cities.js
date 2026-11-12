@@ -134,7 +134,7 @@ export function cityById(id) { return CITIES.find((c) => c.id === id) || null; }
 export function nearestCity(lat, lon) {
   let best = null, bestD = Infinity;
   for (const c of CITIES) {
-    const d = (c.lat - lat) ** 2 + ((c.lon - lat) * Math.cos((lat * Math.PI) / 180)) ** 2;
+    const d = (c.lat - lat) ** 2 + ((c.lon - lon) * Math.cos((lat * Math.PI) / 180)) ** 2;
     if (d < bestD) { bestD = d; best = c; }
   }
   return best;
