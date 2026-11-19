@@ -1,0 +1,817 @@
+/* ============================================================
+   火烧云 sky.netcn.org
+   家族壳层（顶栏/页脚/tokens）不动，这里只做“天空观测”的正文皮肤：
+   暖色霞光 + 深靛夜空，明暗两套都保持纸感可读。
+   ============================================================ */
+
+:root {
+  --ui-ac-site: #d1432a;
+  --sky-2: #7c5cff;
+  --sky-good: #1d9e75;
+  --sky-mid: #ba7517;
+  --sky-bad: #a32d2d;
+  --sky-bar-good: #3aa88a;
+  --sky-bar-mid: #d5a13c;
+  --sky-bar-bad: #d98a7b;
+  --sky-hero:
+    radial-gradient(120% 100% at 82% -10%, rgba(209, 67, 42, .12), transparent 58%),
+    radial-gradient(90% 80% at 6% 0%, rgba(124, 92, 255, .09), transparent 55%);
+  --sky-card-shadow: 0 1px 2px rgba(20, 24, 33, .04), 0 10px 26px -18px rgba(20, 24, 33, .35);
+  --map-sea: #eef3f8;
+  --map-cn: #f4e6dc;
+  --map-nb: #f7f8fa;
+  --map-line: #d5dbe4;
+  --map-grid: #c9d2df;
+  --map-halo: #ffffff;
+}
+
+html.dark {
+  --ui-ac-site: #ff7a55;
+  --sky-2: #9b8cff;
+  --sky-good: #5dcaa5;
+  --sky-mid: #ef9f27;
+  --sky-bad: #f09595;
+  --sky-bar-good: #4fbb9b;
+  --sky-bar-mid: #d9a13f;
+  --sky-bar-bad: #c46f60;
+  --sky-hero:
+    radial-gradient(120% 100% at 82% -10%, rgba(255, 122, 85, .16), transparent 58%),
+    radial-gradient(90% 80% at 6% 0%, rgba(124, 92, 255, .20), transparent 55%);
+  --sky-card-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 16px 34px -22px rgba(0, 0, 0, .8);
+  --map-sea: #0d1420;
+  --map-cn: #2a211d;
+  --map-nb: #161d28;
+  --map-line: #333d4d;
+  --map-grid: #2a3444;
+  --map-halo: #10141c;
+}
+
+/* 顶栏：新站主色与蘑菇（其余槽位与四站完全一致） */
+[data-nc="sky"] {
+  --nc-ac: #d1432a;
+  --nc-ac2: #ffb08a;
+  --nc-soft: rgba(209, 67, 42, .10);
+  --nc-glow: rgba(209, 67, 42, .28);
+}
+html.dark [data-nc="sky"], [data-theme="dark"] [data-nc="sky"] {
+  --nc-ac: #ff7a55;
+  --nc-soft: rgba(255, 122, 85, .14);
+  --nc-glow: rgba(255, 122, 85, .30);
+}
+[data-nc="sky"] .nc-mk { background-image: url("../../shell/mk-sky.png"); }
+
+.sky-main { padding-top: 6px; }
+
+/* ---------- 首屏 ---------- */
+.sky-hero {
+  position: relative;
+  margin: 10px 0 18px;
+  padding: 22px 22px 20px;
+  border: 1px solid var(--ui-line);
+  border-radius: 20px;
+  background: var(--sky-hero), var(--ui-card);
+  overflow: hidden;
+}
+.sky-kicker {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--ui-ink3); font-weight: 600;
+}
+.sky-city {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--ui-line); background: var(--ui-card);
+  color: var(--ui-ink); font-family: inherit; font-size: 14px; font-weight: 800;
+  padding: 6px 12px; border-radius: 999px; cursor: pointer;
+}
+.sky-city:hover { border-color: var(--ui-ac); color: var(--ui-ac); }
+.sky-caret { font-size: 10px; color: var(--ui-ink3); }
+.sky-dot { color: var(--ui-ink3); }
+.sky-hero h1 {
+  margin: 14px 0 8px; font-size: clamp(26px, 4.2vw, 40px);
+  line-height: 1.18; letter-spacing: -.03em; color: var(--ui-ink); font-weight: 900;
+}
+.sky-verdict { margin: 0; max-width: 760px; color: var(--ui-ink2); font-size: 15px; line-height: 1.75; }
+.sky-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 12px; color: var(--ui-ink3); }
+.sky-events { margin: 10px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--ui-ink2); }
+.sky-events b { color: var(--ui-ink); }
+.sky-events .sep { margin: 0 8px; color: var(--ui-ink3); }
+.sky-events a { color: var(--ui-ac); font-weight: 700; text-decoration: none; }
+.sky-events a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.sky-link {
+  border: 0; background: transparent; color: var(--ui-ac); font-family: inherit;
+  font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 0;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.sky-link:hover { filter: brightness(1.1); }
+.sky-link:disabled { opacity: .5; cursor: default; text-decoration: none; }
+
+/* ---------- 四个评分卡 ---------- */
+.sky-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.sky-card {
+  position: relative; text-align: left; cursor: pointer; overflow: hidden;
+  border: 1px solid var(--ui-line); border-radius: 16px; padding: 15px 15px 13px;
+  background: var(--ui-card); color: var(--ui-ink); font-family: inherit;
+  box-shadow: var(--sky-card-shadow); transition: transform .16s, border-color .16s, box-shadow .16s;
+}
+.sky-card::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: var(--ui-ac); opacity: .9;
+}
+.sky-card:hover { transform: translateY(-2px); border-color: var(--ui-ac); }
+.sky-card.on { border-color: var(--ui-ac); box-shadow: 0 0 0 3px var(--ui-ac-soft), var(--sky-card-shadow); }
+.sky-card-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--ui-ink2); }
+.sky-card-value { margin: 8px 0 2px; font-size: 36px; font-weight: 900; letter-spacing: -.04em; line-height: 1; }
+.sky-card-value small { font-size: 14px; font-weight: 800; margin-left: 2px; color: var(--ui-ink3); }
+.sky-card-sub { font-size: 11.5px; line-height: 1.5; color: var(--ui-ink3); min-height: 34px; }
+.sky-card-meter { height: 5px; border-radius: 999px; background: var(--ui-line); overflow: hidden; margin-top: 8px; }
+.sky-card-meter i { display: block; height: 100%; border-radius: 999px; background: var(--ui-ac); }
+
+/* ---------- 面板 ---------- */
+.sky-panel {
+  border: 1px solid var(--ui-line); border-radius: 16px;
+  background: var(--ui-card); padding: 18px 18px 16px; margin-bottom: 16px;
+  box-shadow: var(--sky-card-shadow);
+}
+.sky-panel-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.sky-panel h2, .sky-note h2 { margin: 0; font-size: 16px; font-weight: 900; color: var(--ui-ink); letter-spacing: -.01em; }
+.sky-hint { font-size: 11.5px; color: var(--ui-ink3); }
+
+/* ---------- 时间轴 ---------- */
+.sky-bars {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px;
+  align-items: end; height: 132px; padding: 4px 0 0;
+  border-bottom: 1px solid var(--ui-line);
+}
+.sky-bars::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 50%;
+  border-top: 1px dashed var(--ui-line-soft); pointer-events: none; z-index: 2;
+}
+.sky-bar { position: relative; height: 100%; display: flex; align-items: flex-end; }
+.sky-bar i {
+  display: block; width: 100%; min-height: 3px; border-radius: 4px 4px 0 0;
+  background: var(--ui-ink3);
+  transition: filter .16s;
+}
+.sky-bar:hover i { filter: brightness(1.12) saturate(1.15); }
+/* 日落/日出：暖色描边高亮，保留温度底色 */
+.sky-bar.sun i {
+  box-shadow: inset 0 0 0 2px var(--ui-ac), 0 0 10px -2px var(--ui-ac);
+}
+/* 降水概率高：柱底紫色粗线 */
+.sky-bar.rain::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+  border-radius: 2px; background: var(--sky-2); opacity: .9; z-index: 2;
+}
+/* 空气较差：整柱罩一层灰雾，饱和度下降 */
+.sky-bar.haze i { filter: grayscale(.52) opacity(.78); }
+.sky-bar.haze::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 100%;
+  background: linear-gradient(180deg, transparent 40%, rgba(120, 128, 142, .28));
+  pointer-events: none; z-index: 2; border-radius: 4px 4px 0 0;
+}
+.sky-bars-wrap { position: relative; }
+/* 逐小时温度渐变底带：让整块随时间变色 */
+.sky-temp-band {
+  position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+  border-radius: 10px 10px 0 0; pointer-events: none; z-index: 0;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+}
+/* 温度数值刻度（每 6 小时） */
+.sky-temp-marks { position: relative; height: 16px; margin-top: 2px; }
+.sky-temp-marks span {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font-size: 10px; font-weight: 700; color: var(--ui-ink3);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+/* 图例 */
+.sky-tl-legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px;
+  font-size: 11px; color: var(--ui-ink2);
+}
+.sky-tl-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sky-tl-legend i { display: block; width: 14px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+.sky-tl-legend .lg-temp {
+  width: 26px;
+  background: linear-gradient(90deg, hsl(222,68%,56%), hsl(178,68%,56%), hsl(44,68%,56%), hsl(8,68%,56%));
+}
+.sky-tl-legend .lg-cloud { background: var(--ui-ink3); height: 11px; width: 8px; }
+.sky-tl-legend .lg-rain { background: var(--sky-2); height: 3px; border-radius: 2px; }
+.sky-tl-legend .lg-haze { background: rgba(120,128,142,.5); }
+/* 夜间层：日落后到日出前压一层深靛蓝，让昼夜分段一眼可辨 */
+.sky-night-band {
+  position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+  border-radius: 10px 10px 0 0; pointer-events: none; z-index: 0;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+}
+.sky-bar.night i { box-shadow: inset 0 0 0 1px rgba(30, 44, 92, .22); }
+.sky-tl-legend .lg-night { background: rgba(24, 34, 74, .55); }
+html.dark .sky-temp-band { opacity: .8; }
+html.dark .sky-night-band { opacity: .55; }
+.sky-now { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--ui-ac); pointer-events: none; }
+.sky-now span { position: absolute; top: -3px; left: 3px; padding: 0 4px; border-radius: 4px; background: var(--ui-card); color: var(--ui-ac); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.sky-axis { position: relative; height: 58px; margin-top: 7px; }
+.sky-tick {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font-size: 11px; color: var(--ui-ink3); text-align: center; white-space: nowrap;
+}
+.sky-tick.alt { top: 23px; }
+.sky-tick b { display: block; font-size: 11.5px; color: var(--ui-ink2); font-weight: 700; }
+.sky-tick.first { transform: translateX(0); text-align: left; }
+.sky-tick.last { transform: translateX(-100%); text-align: right; }
+
+/* ---------- 因子解释 ---------- */
+.sky-seg { display: inline-flex; border: 1px solid var(--ui-line); border-radius: 999px; padding: 2px; gap: 2px; }
+.sky-seg button {
+  border: 0; background: transparent; color: var(--ui-ink2); font-family: inherit;
+  font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+}
+.sky-seg button.on { background: var(--ui-ac); color: #fff; }
+.sky-detail-head { margin: 0 0 8px; font-size: 13px; color: var(--ui-ink2); }
+.sky-detail-head b { font-size: 17px; color: var(--ui-ink); }
+.sky-factor { display: grid; grid-template-columns: 96px 1fr 74px; gap: 10px; align-items: center; padding: 6px 0; }
+.sky-factor-name { font-size: 12.5px; color: var(--ui-ink2); font-weight: 700; }
+.sky-factor-name em { font-style: normal; color: var(--ui-ink3); font-weight: 500; margin-left: 4px; font-size: 11px; }
+.sky-track { height: 7px; border-radius: 999px; background: var(--ui-line); overflow: hidden; }
+.sky-fill { display: block; height: 100%; border-radius: 999px; }
+.sky-factor-val { text-align: right; font-size: 12px; color: var(--ui-ink2); font-variant-numeric: tabular-nums; }
+.sky-explain { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--ui-surface); }
+.sky-explain li { margin: 4px 0; font-size: 12.5px; line-height: 1.65; color: var(--ui-ink2); }
+.sky-explain b { color: var(--ui-ink); }
+
+/* ---------- 模式表 ---------- */
+.sky-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.sky-table th, .sky-table td { padding: 8px 7px; border-bottom: 1px solid var(--ui-line); text-align: right; font-variant-numeric: tabular-nums; }
+.sky-table th { font-size: 11.5px; color: var(--ui-ink3); font-weight: 700; white-space: nowrap; }
+.sky-table th:first-child, .sky-table td:first-child { text-align: left; }
+.sky-table td:first-child { font-weight: 700; color: var(--ui-ink); }
+.sky-table tr:last-child td { border-bottom: 0; }
+.sky-org { display: block; font-size: 10.5px; color: var(--ui-ink3); font-weight: 500; }
+.sky-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.sky-pill.good { background: color-mix(in srgb, var(--sky-good) 14%, transparent); color: var(--sky-good); }
+.sky-pill.mid { background: color-mix(in srgb, var(--sky-mid) 16%, transparent); color: var(--sky-mid); }
+.sky-pill.bad { background: color-mix(in srgb, var(--sky-bad) 13%, transparent); color: var(--sky-bad); }
+.sky-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ---------- 集合成员分布 ---------- */
+.sky-ensemble { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--ui-line); }
+.sky-ens-head { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--ui-ink3); margin-bottom: 8px; flex-wrap: wrap; }
+.sky-ens-plot { position: relative; height: 88px; margin-top: 8px; border-bottom: 1px solid var(--ui-line); }
+.sky-ens-plot i { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--ui-ink3); opacity: .8; transform: translate(-50%, 50%); }
+.sky-ens-plot i.on { width: 6px; height: 6px; background: var(--ui-ac); opacity: 1; }
+.sky-ens-threshold { position: absolute; left: 0; right: 0; bottom: 60%; border-top: 1px dashed var(--ui-line); }
+.sky-ens-threshold span { position: absolute; right: 0; top: -8px; padding: 0 3px; background: var(--ui-card); color: var(--ui-ink3); font-size: 10px; }
+.sky-ens-note { margin: 8px 0 0; font-size: 11.5px; color: var(--ui-ink3); line-height: 1.6; }
+
+/* ---------- 未来 5 天观测窗口 ---------- */
+.sky-now-strip { display: flex; align-items: stretch; gap: 9px; margin-bottom: 12px; }
+.sky-now-tag {
+  flex: 0 0 auto; align-self: flex-start;
+  padding: 3px 7px; border: 1px solid var(--ui-line); border-radius: 6px;
+  background: var(--ui-surface); color: var(--ui-ink3); font-size: 10px; font-weight: 700;
+}
+.sky-wx-compact { flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 9px; min-width: 0; }
+.sky-wx-compact .sky-wx-top { padding: 9px 12px; border: 1px solid var(--ui-line); border-radius: 11px; background: var(--ui-surface); }
+.sky-wx-compact .sky-wx-icon { font-size: 29px; }
+.sky-wx-compact .sky-wx-temp b { font-size: 25px; }
+.sky-wx-compact .sky-wx-facts { flex-basis: 190px; gap: 4px 10px; font-size: 10.5px; }
+.sky-wx-compact .sky-aq { margin-top: 0; padding: 9px 12px; border: 1px solid var(--ui-line); border-left: 4px solid var(--c, var(--ui-ac)); background: var(--ui-surface); }
+.sky-wx-compact .sky-aq-score b { font-size: 23px; }
+.sky-wx-compact .sky-aq-meta { gap: 3px 9px; font-size: 10.5px; }
+.sky-wx-compact .sky-aq-label { font-size: 9.5px; }
+
+.sky-days { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.sky-fc-card {
+  display: flex; flex-direction: column; min-width: 0;
+  padding: 13px 13px 11px;
+  border: 1px solid var(--ui-line); border-radius: 14px;
+  background: linear-gradient(180deg, var(--ui-card), var(--ui-surface));
+  transition: border-color .2s, transform .2s;
+}
+.sky-fc-card:hover { border-color: color-mix(in srgb, var(--ui-ac) 42%, var(--ui-line)); transform: translateY(-1px); }
+.sky-fc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.sky-fc-head b { font-size: 13.5px; font-weight: 800; color: var(--ui-ink); }
+.sky-fc-head span { color: var(--ui-ink3); font-size: 10.5px; font-variant-numeric: tabular-nums; text-align: right; }
+.sky-fc-event {
+  display: flex; align-items: center; gap: 5px; min-width: 0;
+  margin: 7px 0 0; padding: 4px 7px;
+  border: 1px solid color-mix(in srgb, #7c5cff 24%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, #7c5cff 8%, transparent);
+  color: #7c5cff; font-size: 9.5px; text-decoration: none;
+}
+.sky-fc-event span { flex: 0 0 auto; font-size: 12px; line-height: 1; }
+.sky-fc-event b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9.5px; font-weight: 700; }
+.sky-fc-event em { flex: 0 0 auto; margin-left: auto; color: var(--ui-ink3); font-size: 9px; font-style: normal; white-space: nowrap; }
+.sky-fc-wx {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 0 8px; margin-top: 2px;
+  border-bottom: 1px dashed var(--ui-line-soft);
+}
+.sky-fc-icon { flex: 0 0 auto; font-size: 25px; line-height: 1; }
+.sky-fc-wx > div { flex: 1 1 auto; min-width: 0; }
+.sky-fc-wx b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ui-ink); font-size: 12.5px; }
+.sky-fc-wx span { display: block; margin-top: 2px; color: var(--ui-ink3); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.sky-fc-wx em { flex: 0 0 auto; color: var(--ui-ink3); font-size: 10px; font-style: normal; white-space: nowrap; }
+.sky-fc-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px 7px; margin: 9px 0 8px; }
+.sky-fc-metrics span { display: flex; justify-content: space-between; gap: 3px; min-width: 0; color: var(--ui-ink3); font-size: 10.5px; }
+.sky-fc-metrics em { font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sky-fc-metrics b { flex: 0 0 auto; color: var(--ui-ink2); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.sky-fc-meters { display: grid; gap: 6px; margin-bottom: 9px; }
+.sky-fc-meter { display: grid; grid-template-columns: 31px minmax(0, 1fr) 40px; align-items: center; gap: 6px; color: var(--ui-ink3); font-size: 10px; }
+.sky-fc-meter i { display: block; height: 5px; overflow: hidden; border-radius: 999px; background: var(--ui-line); }
+.sky-fc-meter i em { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f0a35e, #df6b4f); }
+.sky-fc-meter:nth-child(2) i em { background: linear-gradient(90deg, #f2c45e, #e1a23b); }
+.sky-fc-meter:nth-child(3) i em { background: linear-gradient(90deg, #8094f6, #5367e8); }
+.sky-fc-meter:nth-child(4) i em { background: linear-gradient(90deg, #b08ce8, #8261d4); }
+.sky-fc-meter b { color: var(--ui-ink2); font-size: 10px; font-variant-numeric: tabular-nums; text-align: right; }
+.sky-fc-aux { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; }
+.sky-fc-air, .sky-fc-uv {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  padding: 2px 6px; border: 1px solid var(--ui-line); border-radius: 999px;
+  color: var(--ui-ink3); font-size: 9.5px; font-variant-numeric: tabular-nums;
+}
+.sky-fc-air.ok, .sky-fc-uv.ok { color: #2f8f57; border-color: color-mix(in srgb, #2f8f57 28%, transparent); background: color-mix(in srgb, #2f8f57 8%, transparent); }
+.sky-fc-air.mid, .sky-fc-uv.mid { color: #a66b12; border-color: color-mix(in srgb, #a66b12 28%, transparent); background: color-mix(in srgb, #a66b12 8%, transparent); }
+.sky-fc-air.bad, .sky-fc-uv.bad { color: #b53636; border-color: color-mix(in srgb, #b53636 28%, transparent); background: color-mix(in srgb, #b53636 8%, transparent); }
+.sky-fc-uv.high { color: #a66b12; border-color: color-mix(in srgb, #a66b12 28%, transparent); background: color-mix(in srgb, #a66b12 8%, transparent); }
+.sky-fc-note {
+  margin: 12px 0 0; color: var(--ui-ink3); font-size: 11px; line-height: 1.6;
+}
+
+/* ---------- 说明 ---------- */
+.sky-note { margin: 4px 0 10px; font-size: 12px; color: var(--ui-ink3); line-height: 1.75; }
+.sky-note h2 { font-size: 13px; margin-bottom: 6px; }
+.sky-note a { color: var(--ui-ac); text-decoration: underline; text-underline-offset: 2px; }
+
+/* ---------- 加载与错误 ---------- */
+.sky-skeleton { border-radius: 10px; background: linear-gradient(90deg, var(--ui-line), var(--ui-surface), var(--ui-line)); background-size: 200% 100%; animation: skyShine 1.2s linear infinite; }
+@keyframes skyShine { to { background-position: -200% 0; } }
+.sky-error { padding: 14px; border: 1px solid var(--sky-bad); border-radius: 12px; color: var(--sky-bad); font-size: 13px; }
+
+/* ---------- 顶栏城市联想 ---------- */
+#citySuggest {
+  position: absolute; left: 0; right: 0; top: calc(100% + 5px); z-index: 90;
+  padding: 5px; border: 1px solid var(--ui-line); border-radius: 10px;
+  background: var(--ui-card); box-shadow: 0 14px 30px -16px rgba(10, 14, 22, .5);
+  max-height: 300px; overflow: auto;
+}
+#citySuggest[hidden] { display: none; }
+#citySuggest div {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 10px; border-radius: 7px; font-size: 13px; color: var(--ui-ink2); cursor: pointer;
+}
+#citySuggest div:hover { background: var(--ui-ac-soft); color: var(--ui-ac); }
+.sug-prov { font-size: 11px; color: var(--ui-ink3); }
+
+/* ---------- 城市选择 ---------- */
+.sky-dialog {
+  width: min(620px, 92vw); max-height: 82vh; padding: 18px;
+  border: 1px solid var(--ui-line); border-radius: 18px;
+  background: var(--ui-card); color: var(--ui-ink);
+}
+.sky-dialog::backdrop { background: rgba(8, 12, 20, .5); }
+.sky-dialog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sky-dialog h2 { margin: 0; font-size: 16px; font-weight: 900; }
+.sky-dialog-close { border: 0; background: transparent; color: var(--ui-ink3); font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+.sky-dialog-close:hover { background: var(--ui-surface); color: var(--ui-ink); }
+.sky-dialog input {
+  width: 100%; height: 38px; padding: 0 12px; border-radius: 10px;
+  border: 1px solid var(--ui-line); background: var(--ui-card); color: var(--ui-ink);
+  font-family: inherit; font-size: 14px; margin-bottom: 12px;
+}
+.sky-dialog input:focus { outline: 0; border-color: var(--ui-ac); box-shadow: 0 0 0 3px var(--ui-ac-soft); }
+.sky-city-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 52vh; overflow: auto; padding-right: 2px; }
+.sky-city-item {
+  border: 1px solid var(--ui-line); border-radius: 9px; background: var(--ui-card);
+  color: var(--ui-ink2); font-family: inherit; font-size: 12.5px; font-weight: 600;
+  padding: 8px 6px; cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sky-city-item:hover { border-color: var(--ui-ac); color: var(--ui-ac); }
+.sky-city-item.on { border-color: var(--ui-ac); color: var(--ui-ac); background: var(--ui-ac-soft); font-weight: 800; }
+.sky-city-item small { display: block; font-size: 10px; color: var(--ui-ink3); font-weight: 500; }
+.sky-dialog-note { margin: 10px 0 0; font-size: 11.5px; color: var(--ui-ink3); line-height: 1.6; }
+
+/* ---------- 定位提示 ---------- */
+.sky-geoprompt {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-top: 14px; padding: 12px 14px; border: 1px dashed var(--ui-ac);
+  border-radius: 14px; background: var(--ui-ac-soft);
+}
+.sky-geoprompt[hidden] { display: none; }
+.sky-geoprompt-ic { font-size: 20px; line-height: 1; }
+.sky-geoprompt-txt { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sky-geoprompt-txt b { font-size: 13px; color: var(--ui-ink); }
+.sky-geoprompt-txt span { font-size: 12px; color: var(--ui-ink2); line-height: 1.55; }
+.sky-geoprompt-act { display: flex; gap: 8px; flex: 0 0 auto; }
+.sky-geoprompt-act button {
+  border: 1px solid var(--ui-ac); border-radius: 999px; cursor: pointer;
+  background: var(--ui-ac); color: #fff; font-family: inherit;
+  font-size: 12.5px; font-weight: 800; padding: 8px 14px;
+}
+.sky-geoprompt-act button:last-child { background: transparent; color: var(--ui-ac); }
+.sky-geoprompt-act button:hover { filter: brightness(1.06); }
+
+/* ---------- 晚霞地图（Leaflet 综合图层） ---------- */
+.sky-mapbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.sky-mapbar .sky-seg {
+  display: inline-flex; gap: 2px; padding: 3px;
+  border-radius: 9px; background: var(--ui-line-soft, #eef0f4);
+}
+.sky-mapbar .sky-seg button {
+  padding: 5px 11px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--ui-ink2);
+  font: inherit; font-size: 11.5px; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.sky-mapbar .sky-seg button[aria-pressed="true"] {
+  background: var(--ui-card); color: var(--ui-ink);
+  box-shadow: 0 1px 3px rgba(20, 24, 33, .12);
+}
+html.dark .sky-mapbar .sky-seg { background: #10141c; }
+html.dark .sky-mapbar .sky-seg button[aria-pressed="true"] { background: #242c3a; }
+.sky-layers { display: flex; align-items: center; gap: 14px; }
+.sky-layers label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--ui-ink2); cursor: pointer;
+}
+.sky-layers input { accent-color: var(--ui-ac); width: 14px; height: 14px; margin: 0; }
+
+.lm-map {
+  position: relative;
+  height: clamp(320px, 42vw, 430px);
+  border: 1px solid var(--ui-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0b1020;
+}
+.sky-map-src { margin: 7px 0 0; font-size: 10.5px; color: var(--ui-ink3); }
+
+.lm-legend {
+  position: absolute; left: 10px; top: 10px; z-index: 500;
+  padding: 7px 9px 8px; border-radius: 9px;
+  background: rgba(12, 17, 28, .76);
+  color: #fff; font-size: 10.5px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+.lm-legend-title {
+  display: block; margin-bottom: 4px;
+  color: rgba(255, 255, 255, .66); letter-spacing: .05em;
+}
+.lm-sw { display: flex; gap: 1px; }
+.lm-sw i { display: block; width: 26px; height: 7px; border-radius: 2px; }
+.lm-sw i:first-child { border-radius: 3px 2px 2px 3px; }
+.lm-sw i:last-child { border-radius: 2px 3px 3px 2px; }
+.lm-scale {
+  display: flex; justify-content: space-between; margin-top: 3px;
+  color: rgba(255, 255, 255, .6); font-variant-numeric: tabular-nums;
+}
+
+.lm-cloud {
+  position: absolute; left: 10px; bottom: 46px; z-index: 500;
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 10px 5px 5px; border-radius: 999px;
+  background: rgba(20, 26, 38, .78); color: #fff;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.lm-cloud[hidden] { display: none; }
+.lm-cloud button {
+  width: 24px; height: 24px; border: 0; border-radius: 50%;
+  background: #5b7fa8; color: #fff; font-size: 9px;
+  cursor: pointer; display: grid; place-items: center; padding-left: 1px;
+}
+.lm-cloud button.playing { padding-left: 0; }
+.lm-cloud span { font-size: 11px; font-variant-numeric: tabular-nums; }
+.lm-cloud b, .lm-radar b { font-size: 10.5px; font-weight: 600; opacity: .72; }
+
+.lm-radar {
+  position: absolute; left: 10px; bottom: 10px; z-index: 500;
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 10px 5px 5px; border-radius: 999px;
+  background: rgba(12, 17, 28, .76); color: #fff;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.lm-radar[hidden] { display: none; }
+.lm-radar button {
+  width: 24px; height: 24px; border: 0; border-radius: 50%;
+  background: var(--ui-ac); color: #fff; font-size: 9px;
+  cursor: pointer; display: grid; place-items: center; padding-left: 1px;
+}
+.lm-radar button.playing { padding-left: 0; }
+.lm-radar span { font-size: 11px; font-variant-numeric: tabular-nums; }
+
+.lm-stormchip {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  z-index: 520; padding: 7px 12px;
+  border: 1px solid rgba(255, 190, 120, .45); border-radius: 999px;
+  background: rgba(36, 20, 12, .84); color: #ffd9a8;
+  font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  white-space: nowrap;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.lm-stormchip[hidden] { display: none; }
+.lm-stormchip:hover { background: rgba(52, 28, 14, .92); }
+
+.lm-city {
+  padding: 1px 5px !important; border: 0 !important; border-radius: 4px !important;
+  background: rgba(10, 14, 24, .62) !important; color: #fff !important;
+  font-size: 10px !important; font-weight: 600; box-shadow: none !important;
+  white-space: nowrap;
+}
+.lm-city::before { display: none !important; }
+.lm-city em { font-style: normal; margin-left: 4px; opacity: .75; }
+.lm-city.me { background: rgba(209, 67, 42, .88) !important; }
+.lm-storm {
+  padding: 2px 6px !important; border: 1px solid rgba(255, 190, 120, .5) !important;
+  border-radius: 5px !important; background: rgba(40, 18, 10, .82) !important;
+  color: #ffd9a8 !important; font-size: 10px !important; box-shadow: none !important;
+  white-space: nowrap;
+}
+.lm-storm::before { display: none !important; }
+.lm-fc {
+  padding: 1px 5px !important; border: 1px solid rgba(196, 181, 253, .55) !important;
+  border-radius: 5px !important; background: rgba(49, 34, 84, .88) !important;
+  color: #e9ddff !important; font-size: 10px !important; box-shadow: none !important;
+  white-space: nowrap;
+}
+.lm-fc::before { display: none !important; }
+
+.lm-empty {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+  z-index: 600; max-width: min(86%, 440px);
+  padding: 7px 12px; border-radius: 999px;
+  background: rgba(10, 14, 24, .82); color: #fff;
+  font-size: 11.5px; line-height: 1.45; text-align: center;
+  pointer-events: none;
+}
+
+/* Leaflet 局部覆盖 */
+.leaflet-container { font: inherit; background: #0b1020; }
+.leaflet-control-attribution {
+  font-size: 10px !important; background: rgba(255, 255, 255, .8) !important;
+  color: #4a5262 !important; padding: 2px 6px !important;
+}
+.leaflet-control-attribution a { color: #2f3a4d !important; }
+.leaflet-control-zoom { border: 0 !important; box-shadow: 0 3px 12px rgba(0, 0, 0, .22) !important; }
+.leaflet-control-zoom a {
+  background: rgba(255, 255, 255, .92) !important; color: #1f2733 !important;
+  border-color: rgba(0, 0, 0, .08) !important;
+}
+html.dark .leaflet-control-zoom a { background: rgba(23, 28, 37, .92) !important; color: #e6eaf2 !important; }
+html.dark .leaflet-control-attribution { background: rgba(16, 20, 28, .82) !important; color: #9aa5b7 !important; }
+html.dark .leaflet-control-attribution a { color: #c8d2e2 !important; }
+
+/* 地图空态 */
+.sky-map-loading {
+  display: grid; place-items: center; min-height: 300px; padding: 24px;
+  border: 1px dashed var(--ui-line); border-radius: 12px;
+  color: var(--ui-ink3); font-size: 12.5px; text-align: center;
+}
+
+/* ---------- 天气与空气 ---------- */
+.sky-wx-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.sky-wx-icon { font-size: 38px; line-height: 1; }
+.sky-wx-temp b { font-size: 32px; font-weight: 900; letter-spacing: -.03em; color: var(--ui-ink); }
+.sky-wx-temp span { display: block; font-size: 12.5px; color: var(--ui-ink2); }
+.sky-wx-facts { display: flex; flex-wrap: wrap; gap: 5px 14px; flex: 1 1 260px; font-size: 12px; color: var(--ui-ink3); }
+.sky-aq {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-top: 14px; padding: 11px 14px; border-radius: 12px;
+  background: var(--ui-surface); border-left: 4px solid var(--c, var(--ui-ac));
+}
+.sky-aq-score { display: flex; align-items: baseline; gap: 6px; }
+.sky-aq-score b { font-size: 26px; font-weight: 900; color: var(--c, var(--ui-ac)); }
+.sky-aq-score span { font-size: 12px; font-weight: 800; color: var(--c, var(--ui-ac)); }
+.sky-aq-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ui-ink2); }
+.sky-aq-meta b { color: var(--ui-ink); }
+.sky-aq-label { margin-left: auto; font-size: 11px; color: var(--ui-ink3); }
+.sky-wx-days { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.sky-wx-day {
+  display: flex; flex-direction: column; gap: 3px; padding: 9px 10px;
+  border: 1px solid var(--ui-line); border-radius: 10px;
+  font-size: 11.5px; color: var(--ui-ink3);
+}
+.sky-wx-day b { font-size: 12.5px; font-weight: 700; color: var(--ui-ink2); }
+.sky-wx-day em { font-style: normal; }
+
+/* ---------- 台风 ---------- */
+.sky-storm-list { display: grid; gap: 8px; }
+.sky-storm { display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border: 1px solid var(--ui-line); border-radius: 10px; }
+.sky-storm-name { font-size: 13px; font-weight: 800; color: var(--ui-ink); }
+/* 台风：官方预报标签 */
+.sky-storm-fc { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-top:7px; font-size:11.5px; color:var(--ui-ac); font-weight:600; }
+.sky-storm-fc.muted { color:var(--ui-ink3); font-weight:500; }
+.sky-fc-tag { padding:2px 7px; border-radius:5px; background:rgba(122,92,255,.12); color:#7c5cff; font-size:10px; letter-spacing:.04em; }
+html.dark .sky-fc-tag { background:rgba(160,140,255,.18); color:#b9a8ff; }
+.sky-fc-mini { margin-left:8px; font-size:10px; font-weight:500; color:var(--ui-ink3); }
+.sky-storm-move { margin-top: 3px; font-size: 11.5px; color: var(--ui-ink2); }
+.sky-storm-meta { font-size: 11.5px; color: var(--ui-ink3); line-height: 1.55; }
+.sky-storm .sky-link { align-self: flex-start; margin-top: 2px; }
+.sky-storm-src { margin: 8px 0 0; font-size: 11px; color: var(--ui-ink3); }
+
+/* ---------- 轻提示 ---------- */
+.sky-toast {
+  position: fixed; left: 50%; bottom: 24px; z-index: 999;
+  transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
+  padding: 10px 16px; border-radius: 999px;
+  background: var(--ui-ink); color: var(--ui-bg);
+  font-size: 12.5px; font-weight: 700; transition: .2s;
+  max-width: 88vw; text-align: center;
+}
+.sky-toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 640px) {
+  .lm-stormchip { bottom: 34px; font-size: 11px; padding: 6px 10px; }
+  .lm-legend { padding: 6px 8px 7px; }
+  .lm-sw i { width: 22px; }
+}
+
+.sky-city-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.sky-city-links a {
+  padding: 6px 12px;
+  border: 1px solid var(--ui-line); border-radius: 999px;
+  background: var(--ui-bg); color: var(--ui-ink2);
+  font-size: 12.5px; text-decoration: none;
+}
+.sky-city-links a:hover { border-color: var(--ui-ac); color: var(--ui-ac); }
+
+/* ---------- 首页目录：区域 → 省份 分组 ---------- */
+.sky-link-groups { display: block; }
+.sky-link-region {
+  border: 1px solid var(--ui-line); border-radius: 12px;
+  background: var(--ui-bg); overflow: hidden;
+}
+.sky-link-region + .sky-link-region { margin-top: 8px; }
+.sky-link-region > summary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 13px; cursor: pointer; list-style: none;
+  font-size: 13px; font-weight: 800; color: var(--ui-ink);
+}
+.sky-link-region > summary::-webkit-details-marker { display: none; }
+.sky-link-region > summary::before {
+  content: "▸"; color: var(--ui-ink3); font-size: 12px;
+  transition: transform .15s ease;
+}
+.sky-link-region[open] > summary::before { transform: rotate(90deg); }
+.sky-link-region > summary em {
+  margin-left: auto; font-style: normal;
+  font-size: 11.5px; font-weight: 600; color: var(--ui-ink3);
+}
+.sky-link-prov-wrap {
+  padding: 2px 13px 12px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px 20px; border-top: 1px solid var(--ui-line);
+}
+.sky-link-prov h3 {
+  display: flex; align-items: baseline; gap: 6px;
+  margin: 10px 0 7px;
+  font-size: 12px; font-weight: 800; color: var(--ui-ink2);
+}
+.sky-link-prov h3 small { font-size: 10.5px; font-weight: 600; color: var(--ui-ink3); }
+.sky-link-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1180px) {
+  .sky-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .sky-now-strip { flex-direction: column; }
+  .sky-wx-compact { grid-template-columns: 1fr; }
+}
+@media (max-width: 980px) {
+  .sky-cards { grid-template-columns: repeat(2, 1fr); }
+  .sky-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sky-city-list { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 640px) {
+  .sky-hero { padding: 18px 15px 16px; border-radius: 16px; }
+  .sky-hero h1 { font-size: 27px; }
+  .sky-verdict { font-size: 13.5px; }
+  .sky-cards { gap: 9px; }
+  .sky-link-prov-wrap { grid-template-columns: 1fr; }
+  .sky-card { padding: 13px 12px 11px; border-radius: 14px; }
+  .sky-card-value { font-size: 30px; }
+  .sky-card-sub { min-height: 32px; }
+  .sky-panel { padding: 15px 13px 13px; border-radius: 14px; }
+  .sky-days { grid-template-columns: 1fr; }
+  .sky-bars { gap: 2px; height: 112px; }
+  .sky-factor { grid-template-columns: 76px 1fr 58px; gap: 8px; }
+  .sky-factor-name em { display: none; }
+  .sky-city-list { grid-template-columns: repeat(2, 1fr); }
+  .sky-geoprompt-act { width: 100%; }
+  .sky-geoprompt-act button { flex: 1 1 0; }
+  .sky-wx-icon { font-size: 32px; }
+  .sky-wx-temp b { font-size: 28px; }
+  .sky-aq-label { margin-left: 0; }
+  .sky-map-caption, .sky-map-cap { font-size: 11.5px; }
+  .sky-table { font-size: 11.5px; }
+  .sky-table th, .sky-table td { padding: 7px 5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sky-card, .sky-skeleton { transition: none; animation: none; }
+}
+
+/* ---------- 分享图：页面内生成 ---------- */
+.city-share-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 0 0 16px; padding: 12px 14px;
+  border: 1px solid var(--ui-line); border-radius: 14px;
+  background:
+    radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--ui-ac-site) 11%, transparent), transparent 58%),
+    var(--ui-card);
+}
+.city-share-copy { min-width: 0; }
+.city-share-copy b {
+  display: block; font-size: 13px; font-weight: 800; color: var(--ui-ink);
+  line-height: 1.4;
+}
+.city-share-copy span {
+  display: block; margin-top: 2px; font-size: 10.5px; line-height: 1.5;
+  color: var(--ui-ink3);
+}
+.city-share-btn {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 38px; padding: 0 16px;
+  border: 0; border-radius: 999px;
+  background: var(--ui-ac-site); color: #fff;
+  font-family: inherit; font-size: 12.5px; font-weight: 800; letter-spacing: .01em;
+  cursor: pointer; white-space: nowrap;
+  box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--ui-ac-site) 70%, transparent);
+  transition: transform .15s, filter .15s, opacity .15s;
+}
+.city-share-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.city-share-btn:active { transform: translateY(0); }
+.city-share-btn:disabled { opacity: .45; cursor: default; transform: none; box-shadow: none; }
+
+.city-share-sheet {
+  position: fixed; inset: 0; z-index: 90;
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px;
+}
+.city-share-sheet[hidden] { display: none; }
+.city-share-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(12, 14, 20, .62);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.city-share-panel {
+  position: relative; z-index: 1;
+  width: min(92vw, 420px); max-height: 92vh; overflow: auto;
+  padding: 14px; border-radius: 20px;
+  border: 1px solid var(--ui-line); background: var(--ui-card);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .55);
+}
+.city-share-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 0 2px 10px;
+}
+.city-share-panel-head b { font-size: 13.5px; font-weight: 800; color: var(--ui-ink); }
+.city-share-close {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid var(--ui-line); background: var(--ui-bg);
+  color: var(--ui-ink2); font-family: inherit; font-size: 18px; line-height: 1;
+  cursor: pointer;
+}
+.city-share-close:hover { color: var(--ui-ac); border-color: var(--ui-ac); }
+.city-share-preview { display: block; }
+.city-share-img {
+  display: block; width: auto; max-width: 100%; height: auto; max-height: 56vh;
+  margin: 0 auto; border-radius: 12px;
+  box-shadow: 0 10px 26px -16px rgba(20, 24, 33, .55);
+  -webkit-touch-callout: default; user-select: auto;
+}
+.city-share-panel-foot { padding: 10px 2px 2px; }
+.city-share-note {
+  margin: 0 0 10px; font-size: 10.5px; line-height: 1.55; color: var(--ui-ink3);
+}
+.city-share-panel-actions { display: flex; gap: 9px; }
+.city-share-secondary, .city-share-primary {
+  flex: 1; min-height: 40px; border-radius: 11px;
+  font-family: inherit; font-size: 12.5px; font-weight: 800;
+  cursor: pointer;
+}
+.city-share-secondary {
+  border: 1px solid var(--ui-line); background: var(--ui-bg); color: var(--ui-ink2);
+}
+.city-share-secondary:hover { border-color: var(--ui-ac); color: var(--ui-ac); }
+.city-share-primary {
+  border: 0; background: var(--ui-ac-site); color: #fff;
+}
+.city-share-primary:hover { filter: brightness(1.06); }
+body.share-open { overflow: hidden; }
+@media (max-width: 600px) {
+  .city-share-bar { align-items: flex-start; }
+  .city-share-copy span { display: none; }
+  .city-share-btn { min-height: 36px; padding: 0 14px; }
+  .city-share-panel { width: 94vw; padding: 12px; border-radius: 16px; }
+  .city-share-sheet { padding: 10px; }
+}

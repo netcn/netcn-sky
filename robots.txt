@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /tools/
+Disallow: /404.html
+Sitemap: https://sky.netcn.org/sitemap.xml

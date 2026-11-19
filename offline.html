@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><script id="ncn-theme-boot">(function(){try{var d=document.documentElement,t="";var m=(document.cookie||"").match(/(?:^|; )ncn_theme=(dark|light)/g);if(m&&m.length){t=m[m.length-1].split("=")[1]||""}if(t!=="dark"&&t!=="light"){try{t=localStorage.getItem("theme")||""}catch(e){}}if(t!=="dark"&&t!=="light"){t=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"}d.setAttribute("data-theme",t);if(t==="dark"){d.classList.add("dark")}else{d.classList.remove("dark")}}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>离线 · 火烧云</title>
+<meta name="robots" content="noindex,follow">
+<meta name="description" content="火烧云离线页面：实时云量、空气质量与评分需要联网获取。">
+<meta property="og:title" content="离线 · 火烧云">
+<meta property="og:description" content="网络恢复后刷新，继续查看今晚的晚霞、星空与月亮。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sky.netcn.org/offline.html">
+<meta property="og:image" content="https://sky.netcn.org/assets/og-share-square.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1080">
+<meta property="og:image:height" content="1080">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" hreflang="zh-CN" href="https://sky.netcn.org/offline.html">
+<link rel="alternate" hreflang="en" href="https://sky.netcn.org/offline.html">
+<link rel="alternate" hreflang="x-default" href="https://sky.netcn.org/offline.html">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#d1432a">
+<link rel="stylesheet" href="/assets/css/sky.css?v=18">
+</head>
+<body>
+<main class="sky-page" style="max-width:720px;margin:0 auto;padding:24px 18px 48px">
+  <p class="sky-kicker" data-zh="火烧云 · 离线" data-en="Sky Watch · Offline">火烧云 · 离线</p>
+  <h1 data-zh="现在没有网络连接" data-en="You're offline">现在没有网络连接</h1>
+  <p class="sky-lede" data-zh="今晚的实时云量、空气质量与评分需要联网获取。网络恢复后刷新即可；已经打开过的页面仍可从缓存查看。" data-en="Live cloud cover, air quality and scores need a connection. Refresh once you're back online; pages you've already opened can still load from the cache.">今晚的实时云量、空气质量与评分需要联网获取。网络恢复后刷新即可；已经打开过的页面仍可从缓存查看。</p>
+  <p style="display:flex;flex-wrap:wrap;gap:10px;margin-top:18px">
+    <a class="city-share-btn" href="/" data-zh="回到今晚" data-en="Back to tonight">回到今晚</a>
+    <a class="city-share-btn" href="/city/" data-zh="城市目录" data-en="City directory">城市目录</a>
+    <a class="city-share-btn" href="/events/" data-zh="天象日历" data-en="Sky calendar">天象日历</a>
+  </p>
+</main>
+<script>
+(function () {
+  const lang = (function () {
+    try {
+      const m = document.cookie.match(/(?:^|; )ncn_lang=(en|zh)/);
+      if (m) return m[1];
+      const s = localStorage.getItem("lang");
+      if (s === "en" || s === "zh") return s;
+    } catch (e) {}
+    return document.documentElement.lang === "en" ? "en" : "zh";
+  })();
+  document.querySelectorAll("[data-zh]").forEach(function (el) {
+    const v = el.getAttribute("data-" + lang);
+    if (v != null) el.textContent = v;
+  });
+})();
+</script>
+</body>
+</html>

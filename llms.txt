@@ -1,0 +1,7 @@
+# 火烧云
+
+> 中文晚霞、朝霞、星空与月亮观测指南，覆盖 518 个城市与景区目的地；数据仅供参考。
+
+- 首页：https://sky.netcn.org/
+- 城市索引：https://sky.netcn.org/city/
+- Sitemap：https://sky.netcn.org/sitemap.xml
