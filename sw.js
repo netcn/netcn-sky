@@ -1,5 +1,5 @@
 /* 火烧云 service worker：页面离线可开，静态资源 cache-first，导航 network-first。 */
-const VERSION = "sky-20261119c5";
+const VERSION = "sky-20261119f1";
 const OFFLINE = "/offline.html";
 const CORE = [
   "/",

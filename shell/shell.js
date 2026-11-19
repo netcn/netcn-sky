@@ -1,5 +1,5 @@
 /* ============================================================
-   netcn 统一运行时内核 · v20261119b1
+   netcn 统一运行时内核 · v20261119f1
    ------------------------------------------------------------
    五站共用一份：判站、明暗、中英字典、顶栏/页脚/搜索/无障碍文案、
    首页标题、移动端 App 底部 Tab、状态栏颜色、PWA 安装钩子。
@@ -7,7 +7,7 @@
 
    2026-11-18：五个 netcn 站统一为同一套「五站 + 三外站」入口。
    顶栏 / 页脚 / 底部 Tab 都由本文件补齐缺失的外站链接与免责声明，
-   这样 1,662 个既有 HTML 不需要逐个改也能保持同一顺序。
+   这样 1,973 个既有 HTML 不需要逐个改也能保持同一顺序。
    事件契约不变：ncn:theme / ncn:lang 仍是唯一真源。
    ============================================================ */
 (function () {
@@ -67,14 +67,14 @@
         nav: '900+ 站点',
         ask: '1,057 题 · 93 篇深度 Hub',
         quiz: '1,166 题',
-        game: '53 款游戏',
+        game: '49 款游戏',
         sky: '518 城 · 数据仅供参考'
       },
       title: {
         nav: '简洁导航 - 精选网址导航 | netcn.org',
         ask: '科学问答 · 93 篇深度 Hub + 1,057 题 | ask.netcn.org',
         quiz: '头脑体操 - 1,166 道脑筋急转弯·猜字谜·猜谜语·智力测试',
-        game: '游戏厅 · 53 款游戏 | netcn.org',
+        game: '游戏厅 · 49 款游戏 | netcn.org',
         sky: '火烧云 · 今晚晚霞、朝霞、星空、月亮观测指南'
       },
       themeDark: '切换为深色', themeLight: '切换为浅色',
@@ -96,14 +96,14 @@
         nav: '900+ sites',
         ask: '1,057 Q · 93 hubs',
         quiz: '1,166 puzzles',
-        game: '53 games',
+        game: '49 games',
         sky: '518 cities · for reference'
       },
       title: {
         nav: 'Simple Nav - A clean start page | netcn.org',
         ask: 'Science Q&A · 93 hubs, 1,057 questions | ask.netcn.org',
         quiz: 'Brain Teasers · 1,166 Chinese wordplay & IQ puzzles | quiz.netcn.org',
-        game: 'Arcade · 53 games, play instantly | game.netcn.org',
+        game: 'Arcade · 49 games, play instantly | game.netcn.org',
         sky: "Sky Watch · Tonight's sunset, stars & moon outlook | sky.netcn.org"
       },
       themeDark: 'Switch to dark', themeLight: 'Switch to light',
@@ -176,7 +176,7 @@
     var p = (location.pathname || '').replace(/index\.html$/, '');
     return p === '/' || p === '' || (local && /^\/(home|quiz|game|sky|ask\/www)\/$/.test(p));
   }
-  /* 现有 1,662 个 HTML 只写入了五站入口；三个外站和免责声明由这里补齐。
+  /* 现有 1,973 个 HTML 只写入了五站入口；三个外站和免责声明由这里补齐。
      只在缺失时追加，主站已经静态写死的 8 项不会被重复插入。 */
   /* 内页（尤其头脑体操 1,200+ 道题）历史上只写了站内工具，没有主题/语言键。
      在这些页面补上同一组控件；游戏详情页由另一条适配线处理，避免插手。 */
@@ -212,7 +212,7 @@
       var box = d.querySelector(sel);
       if (!box) return;
       EXTRA_TAB.forEach(function (item) {
-        if (box.querySelector('[data-nc-to="' + item.key + '"]')) return;
+        if (box.querySelector('[data-nc-to="' + item.key + '"]') || box.querySelector('a[href="' + item.href + '"]')) return;
         var a = d.createElement('a');
         a.href = item.href;
         a.setAttribute('data-nc-to', item.key);
@@ -270,7 +270,11 @@
       /* 火烧云城市页自带 data-zh/data-en 且含站内链接，交给页面自己的双语逻辑；
          其余站（含 home 的静态双语属性）一律由统一字典渲染 */
       if (key === 'sky' && e.hasAttribute('data-zh') && e.hasAttribute('data-en')) return;
-      e.innerHTML = t.footSite[key];
+      if (key === 'quiz' && e.querySelector('a')) {
+        e.innerHTML = t.footSite[key] + ' · <a href="/lib/">' + (l === 'en' ? 'Browse by category' : '按分类浏览') + '</a> · <a href="/topics/">' + (l === 'en' ? 'Browse by topic' : '按主题浏览') + '</a>';
+      } else {
+        e.innerHTML = t.footSite[key];
+      }
     });
     [].slice.call(d.querySelectorAll('.nc-foot-legal')).forEach(function (a) {
       a.textContent = l === 'en' ? 'Disclaimer' : '免责声明';
